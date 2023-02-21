@@ -16,6 +16,7 @@ import h5py
 import glob
 from tqdm import tqdm
 import numpy as np
+torch.manual_seed(0) #Reproducability
 
 def load_structure(path):
 
@@ -29,7 +30,7 @@ def load_structure(path):
 
     return edge_features, edge_indices, node_features, r, pdf
 
-def pad_batches(array, max_length):
+def pad_nodes(array, max_length):
     """Adds padding over axis 0 to array"""
     padded_array = torch.zeros((max_length, *array.shape[1:]))
     padded_array[:array.shape[0]] = array
