@@ -32,7 +32,7 @@ def get_data(args, subset=None):
     dataset = torchvision.datasets.ImageFolder(args.dataset_path, transform=transforms)
     if subset is not None:
         dataset = torch.utils.data.Subset(dataset, range(subset))
-    
+
     dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
     return dataloader
 

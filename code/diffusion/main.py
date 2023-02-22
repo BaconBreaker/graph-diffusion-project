@@ -15,7 +15,7 @@ def launch():
     args.batch_size = 14
     args.image_size = 64
     args.num_classes = 10
-    args.dataset_path = "/Users/rasmus/Projects/Diffusion Models/data/cifar10-64/train"
+    args.dataset_path = "/Users/rasmus/Projects/Diffusion Models Framework/data/cifar10-64/train"
     args.device = "cpu"
     args.lr = 3e-4
     train(args)
