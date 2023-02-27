@@ -31,6 +31,26 @@ def save_images(images, path, **kwargs):
 
 
 def get_data(args, subset=None):
+    if args.graph_data:
+        return get_data_graph(args, subset)
+    else:
+        return get_data_(args, subset)
+
+
+def get_data_graph(args, subset=None):
+    adjecency_matrix = torch.load(os.path.join(args.dataset_path, "adjecency_tensor_train.pt"))
+    if subset is not None:
+        adjecency_matrix = adjecency_matrix[:subset]
+
+    # This is just to make it fit into the image setup.
+    labels_tmp = torch.ones(adjecency_matrix.shape[0], dtype=torch.long)
+
+    dataloader = torch.utils.data.TensorDataset(adjecency_matrix, labels_tmp)
+
+    return dataloader
+
+
+def get_data_(args, subset=None):
     transforms = torchvision.transforms.Compose([
         torchvision.transforms.Resize(88),
         torchvision.transforms.RandomResizedCrop(args.image_size, scale=(0.8, 1.0)),

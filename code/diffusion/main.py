@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument("--num_classes", type=int, default=10)
     parser.add_argument("--dataset_path", type=str,
                         default="/Users/rasmus/Projects/Diffusion Models Framework/data/cifar10-64/train")
+    parser.add_argument("--graph_data", type=int, default=0)
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--lr", type=float, default=3e-4)
     return parser.parse_args()
