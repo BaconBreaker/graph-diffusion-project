@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import torch
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 # A noise class should support
 # 1. A noise function capable of generating standard noise
