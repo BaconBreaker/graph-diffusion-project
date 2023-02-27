@@ -6,7 +6,7 @@ Dataloaders for loading graphs and features into pytorch-compatible format
 """
 import torch
 import torch_geometric as tg
-from constants import atom_name_dict
+from code.Obsolete.constants import atom_name_dict
 import glob
 import h5py
 import sys
