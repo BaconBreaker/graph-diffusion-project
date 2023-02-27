@@ -19,6 +19,7 @@ def parse_args():
     parser.add_argument("--graph_data", type=int, default=0)
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--lr", type=float, default=3e-4)
+    parser.add_argument("--num_samples", type=int, default=10)
     return parser.parse_args()
 
 

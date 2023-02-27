@@ -16,7 +16,7 @@ from diffusion import Diffusion, image_sample_post_process
 def train(args):
     setup_logging(args.run_name)
     device = args.device
-    dataloader = get_data(args, subset=3)
+    dataloader = get_data(args, subset=args.num_samples)
     model = ConditionalUNet(num_classes=args.num_classes).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
     mse = nn.MSELoss()
