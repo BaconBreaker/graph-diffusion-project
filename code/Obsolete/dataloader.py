@@ -6,13 +6,12 @@ Dataloaders for loading graphs and features into pytorch-compatible format
 """
 import torch
 import torch_geometric as tg
-from code.Obsolete.constants import atom_name_dict
+from constants import atom_name_dict
 import glob
 import h5py
 import sys
 import os
 sys.path.append('./DiGress')
-from DiGress.src.datasets.abstract_dataset import MolecularDataModule, AbstractDatasetInfos
 
 def load_structure(path):
 
@@ -119,12 +118,6 @@ class GraphDataLoader(tg.data.InMemoryDataset):
 
         data, slices = self.collate(data_list)
         torch.save((data, slices), self.processed_paths[0])
-
-class customDataModule(MolecularDataModule):
-    pass
-
-class customInfo(AbstractDatasetInfos):
-    pass
 
 if __name__ == '__main__':
     # Test if it works
