@@ -20,6 +20,8 @@ def parse_args():
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--num_samples", type=int, default=10)
+    parser.add_argument("--noise_shape", type=int, nargs="+", default=[3, 64, 64])
+
     return parser.parse_args()
 
 

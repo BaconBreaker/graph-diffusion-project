@@ -16,11 +16,11 @@ def generate_noise(noise_function, n, *args, **kwargs):
 
 
 def cosine_f(t, T, s):
-    return torch.cos(torch.tensor(t / T + s) / (1 + s) * np.pi / 2) ** 2
+    return torch.cos((t / T + s) / (1 + s) * np.pi / 2) ** 2
 
 
 def cosine_noise_schedule(T=1000, s=0.008, *_args, **_kwargs):
-    f0 = cosine_f(0, T, s)
+    f0 = cosine_f(torch.tensor(0), T, s)
     ft = cosine_f(torch.arange(0, T + 1), T, s)
 
     alpha_hat = ft / f0

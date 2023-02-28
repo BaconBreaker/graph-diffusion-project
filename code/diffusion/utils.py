@@ -43,6 +43,7 @@ def get_data_graph(args, subset=None):
         adjecency_matrix = adjecency_matrix[:subset]
 
     # This is just to make it fit into the image setup.
+    adjecency_matrix = adjecency_matrix[None, :, None, :134, :134]
     labels_tmp = torch.ones(adjecency_matrix.shape[0], dtype=torch.long)
 
     dataloader = torch.utils.data.TensorDataset(adjecency_matrix, labels_tmp)

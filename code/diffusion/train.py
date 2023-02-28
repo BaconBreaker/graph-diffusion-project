@@ -20,7 +20,7 @@ def train(args):
     model = ConditionalUNet(num_classes=args.num_classes).to(device)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
     mse = nn.MSELoss()
-    noise_shape = (3, args.image_size, args.image_size)
+    noise_shape = args.noise_shape  # (3, args.image_size, args.image_size)
     diffusion = Diffusion(noise_function="gaussian",
                           noise_schedule="cosine",
                           noise_steps=10,
@@ -35,7 +35,6 @@ def train(args):
         logging.info(f"Starting epoch {epoch}:")
         pbar = tqdm(dataloader, total=dl_len)
         for i, (images, labels) in enumerate(pbar):
-            images = images.to(device)
             labels = labels.to(device)
             t = diffusion.sample_time_steps(images.shape[0]).to(device)
             x_t, noise = diffusion.diffuse(images, t)
