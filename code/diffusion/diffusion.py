@@ -54,7 +54,9 @@ def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
 
 
 def x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, beta, noise, x_0, x_t):
-    mu = (torch.sqrt(alpha) * (1 - alpha_hat) * x_t + torch.sqrt(alpha_hat_sub_1) * (1 - alpha) * x_0) \
+    mu_part1 = torch.sqrt(alpha) * (1 - alpha_hat) * x_t
+    mu_part2 = torch.sqrt(alpha_hat_sub_1) * (1 - alpha) * x_0
+    mu = (mu_part1 + mu_part2) \
         / 1 - alpha_hat
     variance = ((1 - alpha) * (1 - alpha_hat_sub_1)) / (1 - alpha_hat)
     return mu + torch.sqrt(variance) * noise
@@ -115,7 +117,10 @@ class Diffusion:
         logging.info(f"Sampling {n} new images....")
         model.eval()
         with torch.no_grad():
-            x = self.noise_function.sample(n)
+            x = self.noise_function.sample(n,
+                                           alpha=self.alpha,
+                                           alpha_hat=self.alpha_hat,
+                                           beta=self.beta)
             for i in tqdm(reversed(range(1, self.noise_steps)), position=0):
                 x = self.sample_previous_x(i, labels, model, n, x)
 
