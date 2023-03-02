@@ -41,14 +41,21 @@ def get_data(args, subset=None):
 
 def get_data_graph(args, subset=None):
     adjecency_matrix = torch.load(os.path.join(args.dataset_path, "adjecency_tensor_train.pt"))
+    node_features = torch.load(os.path.join(args.dataset_path, "node_tensor_train.pt"))
+    pdfs = torch.load(os.path.join(args.dataset_path, "pdf_tensor_train.pt"))
     if subset is not None:
         adjecency_matrix = adjecency_matrix[:subset]
+        node_features = node_features[:subset]
+        pdfs = pdfs[:subset]
 
     # This is just to make it fit into the image setup.
     adjecency_matrix = adjecency_matrix[None, :, None, :134, :134]
+    node_features = node_features[None, :, :134, :]
+    pdfs = pdfs[None, ...]
     labels_tmp = torch.ones(adjecency_matrix.shape[0], dtype=torch.long)
+    pad_mask = torch.ones(node_features.shape[0:3], dtype=bool)
 
-    dataloader = torch.utils.data.TensorDataset(adjecency_matrix, labels_tmp)
+    dataloader = torch.utils.data.TensorDataset(adjecency_matrix, labels_tmp, node_features, pdfs, pad_mask)
 
     return dataloader
 
@@ -107,7 +114,11 @@ def calculate_pdf(point_cloud, atom_species):
     """
     structure = Structure()
     for atom, xyz in zip(atom_species, point_cloud):
-        structure.append(Atom(element(atom.item()).symbol, xyz))
+        if not isinstance(atom.item(), int):
+            atom = int(atom.item())
+        else:
+            atom = atom.item()
+        structure.append(Atom(element(atom).symbol, xyz))
 
     structure.B11 = 0.3  # Keep to 0.3, isotropic vibration on first axis
     structure.B22 = 0.3  # Keep to 0.3, isotropic vibration on second axis
@@ -153,7 +164,7 @@ def calculate_pdf_batch(matrix_in, atom_species, pad_mask):
     """
     Generate pdf from batch of predictions
     args:
-        matrix_in (torch.Tensor): batch of predictions of shape (batch_size, n, *)
+        matrix_in (torch.Tensor): batch of predictions of shape (batch_size, *)
                                   (can be both point cloud or adjecency matrix)
         atom_species (torch.Tensor): batch of atomic weights of shape (batch_size, n)
         pad_mask (torch.Tensor): batch of padding masks of shape (batch_size, n)
@@ -162,9 +173,9 @@ def calculate_pdf_batch(matrix_in, atom_species, pad_mask):
     pdfs = []
     if matrix_in.shape[2] != 3:  # If matrix_in is adjecency matrix
         for i in range(matrix_in.shape[0]):
-            adj_matrix = matrix_in[i][pad_mask[i]]
+            adj_matrix = matrix_in[i][:, pad_mask[i]][:, :, pad_mask[i]]
             species = atom_species[i][pad_mask[i]]
-            pdfs.append(calculate_pdf_from_adjecency_matrix(adj_matrix, species))
+            pdfs.append(calculate_pdf_from_adjecency_matrix(adj_matrix[0], species))
     else:  # If matrix_in is point cloud
         for i in range(matrix_in.shape[0]):
             point_cloud = matrix_in[i][pad_mask[i]]

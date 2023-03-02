@@ -29,14 +29,39 @@ class GaussianNoise(Noise):
         self.noise_shape = noise_shape
         self.device = device
 
-    def noise_function(self, n):
+    def noise_function(self, n=None):
         return torch.randn
 
-    def sample(self, n, _alpha_t, _alpha_hat_t, _beta_t):
-        return self.noise_function((n, *self.noise_shape)).to(self.device)
+    def sample(self, n, **kwargs):
+        return self.noise_function()((n, *self.noise_shape)).to(self.device)
 
     def sample_like(self, x):
         return torch.randn_like(x).to(self.device)
+
+
+class SymmetricGaussianNoise(Noise):
+    """Gaussian noise function."""
+    def __init__(self, noise_shape, device="cpu"):
+        super().__init__()
+        self.noise_shape = noise_shape
+        self.device = device
+
+    def noise_function(self, n=None):
+        def n_fn(*args):
+            noise = torch.randn(*args)
+            upper = noise.triu(diagonal=1)
+            noise = upper + upper.transpose(-1, -2)
+            return noise
+        return n_fn
+
+    def sample(self, n, **kwargs):
+        return self.noise_function()((n, *self.noise_shape)).to(self.device)
+
+    def sample_like(self, x):
+        noise = torch.randn_like(x)
+        upper = torch.triu(noise)
+        noise = upper + upper.transpose(-1, -2)
+        return noise.to(self.device)
 
 
 class UniformCategoricalNoise(Noise):

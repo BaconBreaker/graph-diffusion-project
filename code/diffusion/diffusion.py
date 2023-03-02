@@ -140,7 +140,10 @@ class Diffusion:
         alpha_hat = self.alpha_hat[t][:, None, None, None]
         alpha_hat_sub_1 = self.alpha_hat[t - 1][:, None, None, None]
         beta = self.beta[t][:, None, None, None]
-        noise = torch.randn_like(x) if i > 1 else torch.zeros_like(x)
+        if i > 1:
+            noise = self.noise_function.sample_like(x)
+        else:
+            noise = torch.zeros_like(x)
         if self.model_target == "noise":
             x = x_t_sub_from_noise(alpha, alpha_hat, beta, noise, prediction, x)
         else:

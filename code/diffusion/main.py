@@ -21,6 +21,8 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=3e-4)
     parser.add_argument("--num_samples", type=int, default=10)
     parser.add_argument("--noise_shape", type=int, nargs="+", default=[3, 64, 64])
+    parser.add_argument("--noise_function", type=str, default="gaussian")
+    parser.add_argument("--diffusion_timesteps", type=int, default=100)
 
     return parser.parse_args()
 
