@@ -4,7 +4,7 @@ import logging
 import torch
 import numpy as np
 
-from noise import GaussianNoise, Noise
+from noise import GaussianNoise, Noise, SymmetricGaussianNoise
 
 
 def generate_gaussian_noise(n, shape, device):
@@ -48,9 +48,10 @@ def prepare_noise_schedule(noise_schedule, T, *args, **kwargs):
 
 
 def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
-    return 1 / torch.sqrt(alpha) \
+    res = 1 / torch.sqrt(alpha + 1e-5) \
         * (x_t - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) \
         + torch.sqrt(beta) * noise
+    return res
 
 
 def x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, beta, noise, x_0, x_t):
@@ -93,6 +94,8 @@ class Diffusion:
 
         if noise_function == "gaussian":
             self.noise_function = GaussianNoise(**d_kwargs, device=self.device)
+        elif noise_function == "symmetricgaussian":
+            self.noise_function = SymmetricGaussianNoise(**d_kwargs, device=self.device)
         elif isinstance(noise_function, Noise):
             self.noise_function = noise_function
         else:
@@ -121,7 +124,7 @@ class Diffusion:
                                            alpha=self.alpha,
                                            alpha_hat=self.alpha_hat,
                                            beta=self.beta)
-            for i in tqdm(reversed(range(1, self.noise_steps)), position=0):
+            for i in tqdm(reversed(range(1, self.noise_steps)), position=0, total=self.noise_steps-1):
                 x = self.sample_previous_x(i, labels, model, n, x)
 
         model.train()
