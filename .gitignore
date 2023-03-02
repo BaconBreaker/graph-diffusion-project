@@ -1,5 +1,7 @@
 __pycache__
 .vscode
+.idea
+.DS_Store
 code/diffusion/models
-code/diffusion/runs
 code/diffusion/results
+code/diffusion/runs
