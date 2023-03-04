@@ -1,3 +1,8 @@
+"""
+Main training functionality for the diffusion model.
+
+@Author Thomas Christensen and Rasmus Pallisgaard
+"""
 import os
 import numpy as np
 import torch
@@ -7,18 +12,21 @@ from tqdm.auto import tqdm
 import logging
 from torch.utils.tensorboard import SummaryWriter
 
-from models import ConditionalUNet, SelfAttentionNetwork
-from utils import get_data, setup_logging, save_images, calculate_pdf_batch, pearson_metric, rwp_metric, mse_metric
-from diffusion import Diffusion, image_sample_post_process
-# from ema import EMA
+from diffusion import Diffusion
+
+from utils.get_model import get_model
+from utils.logging import setup_logging
+from utils.data import get_data
+from utils.metrics import pearson_metric, rwp_metric, mse_metric
+from utils.pdf import calculate_pdf_batch
+# from utils.ema import EMA
 
 
 def train(args):
     setup_logging(args.run_name)
     device = args.device
     dataloader = get_data(args, subset=args.num_samples)
-    # model = ConditionalUNet(num_classes=args.num_classes).to(device)
-    model = SelfAttentionNetwork(num_classes=args.num_classes, input_size=args.image_size).to(device)
+    model = get_model(args)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
     mse = nn.MSELoss()
     noise_shape = args.noise_shape  # (3, args.image_size, args.image_size)
@@ -42,7 +50,6 @@ def train(args):
             x_t, noise = diffusion.diffuse(images, t)
             if np.random.random() < 0.1:
                 labels = None
-            # predict x_0
             predicted_noise = model(x_t, t, labels)
             loss = mse(noise, predicted_noise)
 
@@ -58,16 +65,14 @@ def train(args):
             labels = torch.arange(1).long().to(device)
             sampled_images = diffusion.sample(model, n=len(labels), labels=labels)
             predicted_pdfs = calculate_pdf_batch(sampled_images, atom_species, pad_mask)
+
+            # ema_sampled_images = diffusion.sample(ema_model, n=len(labels), labels=labels)
+
             mse_m = mse_metric(pdfs, predicted_pdfs)
             rwp = rwp_metric(pdfs, predicted_pdfs)
             pearson = pearson_metric(pdfs, predicted_pdfs)
             print(f"MSE: {mse_m}, RWP: {rwp}, Pearson: {pearson}")
-            # ema_sampled_images = diffusion.sample(ema_model, n=len(labels), labels=labels)
-            # plot_images(sampled_images)
-            # save_images(sampled_images,
-            #             os.path.join("results", args.run_name, f"{epoch}.png"))
-            # save_images(ema_sampled_images,
-            #             os.path.join("results", args.run_name, f"{epoch}_ema.png"))
+
             torch.save(model.state_dict(),
                        os.path.join("models", args.run_name, "ckpt.pth"))
             # torch.save(ema_model.state_dict(),
