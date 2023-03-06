@@ -32,6 +32,8 @@ def parse_args():
                         help="Number of validation samples to use for training, None means all")
     parser.add_argument("--val_split", type=float, default=0.1,
                         help="Fraction of training data to use for validation")
+    parser.add_argument("--pad_length", type=int, default=None,
+                        help="Length to pad the graphs to, None means no the script will pad to the max length")
 
     # ## Model parameters ##
     parser.add_argument("--model", type=str, default="self_attention",
@@ -65,4 +67,6 @@ if __name__ == "__main__":
     from train import train
     import torch
     args = check_args(args)
+    args.num_classes = 10
+    args.pad_length = 135
     train(args)

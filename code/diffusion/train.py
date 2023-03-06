@@ -14,9 +14,10 @@ from torch.utils.tensorboard import SummaryWriter
 
 from diffusion import Diffusion
 
+from dataloader import MoleculeDataModule
+
 from utils.get_model import get_model
 from utils.logging import setup_logging
-from utils.data import get_data
 from utils.metrics import pearson_metric, rwp_metric, mse_metric
 from utils.pdf import calculate_pdf_batch
 # from utils.ema import EMA
@@ -25,8 +26,8 @@ from utils.pdf import calculate_pdf_batch
 def train(args):
     setup_logging(args.run_name)
     device = args.device
-    dataloader = get_data(args, subset=args.num_samples)
-    model = get_model(args)
+    model, pretransform, posttransform = get_model(args)
+    dataloader = MoleculeDataModule(args, pretransform)
     optimizer = optim.AdamW(model.parameters(), lr=args.lr)
     mse = nn.MSELoss()
     noise_shape = args.noise_shape  # (3, args.image_size, args.image_size)
@@ -36,15 +37,18 @@ def train(args):
                           device=device,
                           noise_shape=noise_shape)
     logger = SummaryWriter(os.path.join("runs", args.run_name))
-    dl_len = len(dataloader)
     # ema = EMA(beta=0.995)
     # ema_model = copy.deepcopy(model).eval().requires_grad_(False)
 
     for epoch in range(args.epochs):
         logging.info(f"Starting epoch {epoch}:")
-        pbar = tqdm(dataloader, total=dl_len)
-        for i, (images, labels, node_feautures, pdfs, pad_mask) in enumerate(pbar):
-            atom_species = node_feautures[:, :, 0]
+        dataloader.prepare_data()
+        dataloader.setup()
+        dataloader = dataloader.train_dataloader()
+        pbar = tqdm(dataloader)
+        for i, inputs in enumerate(pbar):
+            print(inputs)
+            atom_species = inputs[0][:, :, 0]
             labels = labels.to(device)
             t = diffusion.sample_time_steps(images.shape[0]).to(device)
             x_t, noise = diffusion.diffuse(images, t)

@@ -76,16 +76,17 @@ def load_structure(path):
     return edge_features, edge_indices, node_features, r, pdf
 
 
-def pad_array(array, max_length):
+def pad_array(array, max_length, pad_value=0):
     """
-    Adds padding over axis 0 to array, all padded values are -1
+    Adds padding over axis 0 to array
     args:
         array: array to pad
         max_length: length to pad to
+        pad_value: value to pad with
     returns:
         padded_array: padded array
     """
-    padded_array = torch.zeros((max_length, *array.shape[1:])) - 1
+    padded_array = torch.zeros((max_length, *array.shape[1:])) + pad_value
     padded_array[:array.shape[0]] = array
     return padded_array
 
