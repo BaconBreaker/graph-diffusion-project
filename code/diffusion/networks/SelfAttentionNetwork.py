@@ -33,14 +33,14 @@ def self_attention_pretransform(sample_dict):
     edge_sequence = adj_matrix[upper_index[0], upper_index[1]]
 
     # Make a corresponding mask
-    pad_mask_old = sample_dict.pop('pad_mask')
-    n_real = pad_mask_old.sum() # By summing the mask, we get the number of non-padded nodes
-    pad_mask = torch.ones(n_real * (n_real - 1) // 2)
+    pad_mask = sample_dict['pad_mask']
+    n_real = pad_mask.sum() # By summing the mask, we get the number of non-padded nodes
+    pad_mask_seq = torch.ones(n_real * (n_real - 1) // 2)
     out_of_bounds = torch.logical_or(upper_index[0] >= n_real-1, upper_index[1] >= n_real-1)
-    pad_mask[out_of_bounds] = 0
+    pad_mask_seq[out_of_bounds] = 0
 
     sample_dict['edge_sequence'] = edge_sequence
-    sample_dict['pad_mask'] = pad_mask
+    sample_dict['pad_mask_sequence'] = pad_mask_seq
 
     return sample_dict
 
@@ -91,13 +91,21 @@ class SelfAttentionNetwork(nn.Module):
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
         return pos_enc
 
-    def forward(self, x, t, labels=None):
+    def forward(self, batch, t, labels=None):
         """
         forward pass of the network
         args:
-            x: (batch_size, channels, pad_length * (pad_length - 1) / 2) tensor containing the input sequence
+            batch: batch dictionary containing:
+                edge_sequence: (batch_size, pad_length * (pad_length - 1) / 2) tensor containing the
+                    flattened upper triangle of the adjacency matrix
+                node_features: (batch_size, pad_length, 7) tensor containing the node features
+                r: (batch_size, 3000) tensor containing the real space values
+                pdf: (batch_size, 3000) tensor containing the pair distribution function values
+                pad_mask: (batch_size, pad_length, 1) tensor containing a mask for the padding
             t: (batch_size, 1) tensor containing the time
         """
+        x = batch['edge_sequence'].unsqueeze(1)
+
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
         t = t[:, :, None].repeat(1, x.shape[-2], x.shape[-1])
@@ -110,5 +118,7 @@ class SelfAttentionNetwork(nn.Module):
         x = self.sa4(x)
 
         x = self.outc(x)
+        
+        batch['edge_sequence'] = x.squeeze(1)
 
-        return x
+        return batch

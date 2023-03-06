@@ -103,4 +103,6 @@ def make_adjecency_matrix(edge_indices, edge_features, max_length):
     """
     adjecency_matrix = torch.zeros((max_length, max_length))
     adjecency_matrix[edge_indices[0, :], edge_indices[1, :]] = edge_features
+    # Once again for symmetry
+    adjecency_matrix[edge_indices[1, :], edge_indices[0, :]] = edge_features
     return adjecency_matrix
