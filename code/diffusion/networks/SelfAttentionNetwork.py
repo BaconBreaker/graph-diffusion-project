@@ -19,10 +19,11 @@ def self_attention_pretransform(sample_dict):
         sample_dict: dictionary containing tensors:
             edge_sequence: (pad_length * (pad_length - 1) / 2) tensor containing the flattened upper
                 triangle of the adjacency matrix
-            node_features: (pad_length, 7) tensor containing the node features
             r: (3000) tensor containing the real space values
             pf: (3000) tensor containing the pair distribution function values
             pad_mask: (pad_length, 1) tensor containing a mask for the padding
+            pad_mask_sequence: (pad_length * (pad_length - 1) / 2) tensor containing a mask for the
+                flattened upper triangle of the adjacency matrix
     """
     adj_matrix = sample_dict.pop('adj_matrix')
     # Find the upper triangle of the adjacency matrix
@@ -41,6 +42,9 @@ def self_attention_pretransform(sample_dict):
 
     sample_dict['edge_sequence'] = edge_sequence
     sample_dict['pad_mask_sequence'] = pad_mask_seq
+    
+    # Remove unnecessary tensors
+    sample_dict.pop('node_features')
 
     return sample_dict
 

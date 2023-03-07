@@ -20,9 +20,9 @@ def train(args):
 
     setup_logging(args.run_name)
     model, pretransform, posttransform = get_model(args)
-    dataloader = MoleculeDataModule(args, pretransform)
+    dataloader = MoleculeDataModule(args=args, preransform=pretransform)
     diffusion = Diffusion(denoising_fn=model, posttransform=posttransform,
                           tracker=tracker, args=args)
 
-    trainer = pl.Trainer()
+    trainer = pl.Trainer.from_argparse_args(args)
     trainer.fit(diffusion, dataloader)

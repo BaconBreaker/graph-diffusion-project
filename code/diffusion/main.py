@@ -1,5 +1,16 @@
+"""
+Main script for training the diffusion model.
+
+Example of how to run the script:
+python main.py --dataset_path <some_path> --run_name <some_name> 
+    --device cuda --max_epochs 1000 --batch_size 16 
+    --check_val_every_n_epoch 10
+"""
 import argparse
 import logging
+import torch
+import pytorch_lightning as pl
+from train import train
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s %(message)s',
                     level=logging.INFO,
@@ -47,6 +58,10 @@ def parse_args():
     parser.add_argument("--diffusion_timesteps", type=int, default=100,
                         help="Number of diffusion timesteps to use")
 
+
+    # ## Pytorch Lightning parameters ##
+    parser = pl.Trainer.add_argparse_args(parser)
+
     return parser.parse_args()
 
 
@@ -62,10 +77,6 @@ def check_args(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    # By importing train here we can run the help command from the command line
-    # faster, since we don't have to wait for the imports to finish.
-    from train import train
-    import torch
     args = check_args(args)
     args.num_classes = 10
     args.pad_length = 135
