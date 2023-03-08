@@ -4,8 +4,8 @@ import logging
 
 import torch.nn.functional as f
 
-from BaseDiffusion import Diffusion
-from ..utils.stuff import unsqueeze_n
+from diffusion_modules.BaseDiffusion import Diffusion
+from utils.stuff import unsqueeze_n
 
 
 def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
