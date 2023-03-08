@@ -46,14 +46,14 @@ class MoleculeDataset(Dataset):
         sample_path = self.sample_list[idx]
         edge_features, edge_indices, node_features, r, pdf = load_structure(sample_path)
 
-        pad_mask = torch.ones((node_features.shape[0], 1))
-        pad_mask[node_features.shape[0]:] = 0
+        pad_mask = torch.zeros((node_features.shape[0], 1), dtype=torch.bool)
+        pad_mask[node_features.shape[0]:] = True
 
         node_features = pad_array(node_features, self.pad_length, 0)
-        ajd_matrix = make_adjecency_matrix(edge_indices, edge_features, self.pad_length)
+        adj_matrix = make_adjecency_matrix(edge_indices, edge_features, self.pad_length)
 
         sample_dict = {
-            'adj_matrix': ajd_matrix,
+            'adj_matrix': adj_matrix,
             'node_features': node_features,
             'r': r,
             'pdf': pdf,
