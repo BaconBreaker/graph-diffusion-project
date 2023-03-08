@@ -3,7 +3,7 @@ from typing import Callable, Union
 
 import torch
 
-from ..utils.noise_schedule import linear_noise_schedule, cosine_noise_schedule
+from utils.noise_schedule import linear_noise_schedule, cosine_noise_schedule
 
 class Diffusion(ABC):
     def __init__(self,
@@ -36,4 +36,8 @@ class Diffusion(ABC):
 
     @abstractmethod
     def sample(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def loss(self, prediction, noise, batch):
         pass
