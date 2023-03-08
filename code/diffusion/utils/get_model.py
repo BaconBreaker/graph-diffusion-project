@@ -27,3 +27,18 @@ def get_model(args):
     else:
         raise ValueError(f"Model {args.model} not implemented")
     return model, pretransform, posttransform
+
+
+def get_diffusion(args):
+    """
+    Returns the diffusion model given the args
+    args:
+        args: argparse object
+    returns:
+        diffusion: torch.nn.Module
+    """
+    if args.diffusion == "ddpm":
+        diffusion = DDPM()
+    else:
+        raise ValueError(f"Diffusion {args.diffusion} not implemented")
+    return diffusion
