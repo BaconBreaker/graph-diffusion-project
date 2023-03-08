@@ -42,8 +42,8 @@ def x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, _beta, noise, x_0, x_t):
     return mu + torch.sqrt(variance) * noise
 
 
-class GaussianDiffusionForNoise(Diffusion):
-    def __init__(self, noise_shape, *args, model_target="noise", **kwargs):
+class GaussianDiffusion(Diffusion):
+    def __init__(self, noise_shape, model_target="noise", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.noise_shape = noise_shape
         self.model_target = model_target

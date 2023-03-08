@@ -4,15 +4,15 @@ import logging
 import torch
 import torch.nn.functional as f
 
-from diffusion_modules.BaseDiffusion import Diffusion
-from utils.stuff import unsqueeze_n, cum_matmul, cat_dist
+from ..diffusion_modules.BaseDiffusion import Diffusion
+from ..utils.stuff import unsqueeze_n, cum_matmul, cat_dist
 
 
 class UniformCategoricalDiffusion(Diffusion):
-    def __init__(self, n_categorical, n_vals, *args, **kwargs):
+    def __init__(self, n_categorical_vars, n_values, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.n_categorical = n_categorical
-        self.n_vals = n_vals
+        self.n_categorical_vars = n_categorical_vars  # Number of categorical variables
+        self.values = n_values  # Number of values for each categorical variable
 
     def sample_from_noise_fn(self, ts, bar=False):
         if bar:
@@ -29,11 +29,11 @@ class UniformCategoricalDiffusion(Diffusion):
         if isinstance(t, torch.Tensor):
             t = t.clone()
         t -= 1
-        k = self.n_vals
+        k = self.values
         q1 = unsqueeze_n(1 - self.beta[t], 2) * torch.eye(k).unsqueeze(0)
         q2 = unsqueeze_n(self.beta[t], 2) * torch.ones([k, k]).unsqueeze(0)
         q = q1 + q2 / k
-        q = q.unsqueeze(1).repeat(1, self.n_categorical, 1, 1)
+        q = q.unsqueeze(1).repeat(1, self.n_categorical_vars, 1, 1)
         return q
 
     def get_qt_bar(self, t):
@@ -124,7 +124,7 @@ class UniformCategoricalDiffusion(Diffusion):
         model_out = model(xt, t, labels=labels)
         model_out = f.softmax(model_out, dim=-1)
         p = self.p_previous_x(xt, model_out, t)
-        o = cat_dist(p, self.n_vals).float()
+        o = cat_dist(p, self.values).float()
         return o
 
     def diffuse(self, x_0, t):
@@ -132,12 +132,12 @@ class UniformCategoricalDiffusion(Diffusion):
         q_t_bar = self.get_qt_bar(t)
         # probs = x_0 @ q_t_bar
         probs = torch.einsum("abi,abij->abj", x_0, q_t_bar)
-        o = cat_dist(probs, self.n_vals).float()
+        o = cat_dist(probs, self.values).float()
         return o, q_t_bar
 
     def uniform_x(self, n):
-        x = torch.randint(0, self.n_vals, (n, self.n_categorical))
-        x = f.one_hot(x, self.n_vals).float()
+        x = torch.randint(0, self.values, (n, self.n_categorical_vars))
+        x = f.one_hot(x, self.values).float()
         return x
 
     def sample(self, model, n, labels=None):
