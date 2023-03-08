@@ -1,3 +1,10 @@
+"""
+Class for Exponential Moving Average
+
+@Author Thomas Christensen and Rasmus Pallisgaard
+"""
+
+
 class EMA:
     def __init__(self, beta):
         self.beta = beta

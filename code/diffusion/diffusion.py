@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 
 from utils import unsqueeze_n, cum_matmul, cat_dist
+from noise import GaussianNoise, Noise, SymmetricGaussianNoise
 
 
 def generate_gaussian_noise(n, shape, device):
@@ -62,11 +63,10 @@ def prepare_noise_schedule(noise_schedule, T, *args, **kwargs):
 
 
 def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
-    """Computes x_{t-1} from a noise sample, a predicted noise for x_t and x_t given, along with alpha, alpha_hat
-    and beta."""
-    return 1 / torch.sqrt(alpha) \
+    res = 1 / torch.sqrt(alpha + 1e-5) \
         * (x_t - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) \
         + torch.sqrt(beta) * noise
+    return res
 
 
 def x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, _beta, noise, x_0, x_t):
@@ -171,10 +171,11 @@ class GaussianDiffusionForNoise(Diffusion):
         n = x.size(0)
         x_n_dims = len(x.shape[1:])
         prediction = model(x, t, labels)
-        alpha = unsqueeze_n(self.alpha[t], x_n_dims)
-        alpha_hat = unsqueeze_n(self.alpha_hat[t], x_n_dims)
-        alpha_hat_sub_1 = unsqueeze_n(self.alpha_hat[t - 1], x_n_dims)
-        beta = unsqueeze_n(self.beta[t], x_n_dims)
+
+        alpha = self.alpha[t][:, None, None, None]
+        alpha_hat = self.alpha_hat[t][:, None, None, None]
+        alpha_hat_sub_1 = self.alpha_hat[t - 1][:, None, None, None]
+        beta = self.beta[t][:, None, None, None]
         noise = self.sample_from_noise_fn(n)
 
         if self.model_target == "noise":
