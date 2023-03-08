@@ -97,10 +97,12 @@ class SelfAttention(nn.Module):
 
 class EdgeSelfAttention(nn.Module):
     def __init__(self, size, num_heads = 4, channels = 8, dropout = 0.1):
+        super(EdgeSelfAttention, self).__init__()
         self.size = size
+        n_edges = self.size * (self.size - 1) // 2
         self.mha = nn.MultiheadAttention(embed_dim=channels, num_heads=num_heads, batch_first=True,
                                          dropout=dropout)
-        self.ln = nn.LayerNorm([channels])
+        self.ln = nn.LayerNorm([n_edges, channels])
         self.ff_self = nn.Sequential(
             nn.LayerNorm([channels]),
             nn.Linear(channels, channels),
@@ -113,7 +115,6 @@ class EdgeSelfAttention(nn.Module):
         Forward function, takes in a tensor of shape (batch_size, n, channels)
         """
         x = self.ln(x)
-
         att_val, _ = self.mha(x, x, x, key_padding_mask=mask)
         att_val = att_val + x
         att_val = self.ff_self(att_val) + att_val

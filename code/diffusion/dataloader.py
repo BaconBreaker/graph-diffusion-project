@@ -40,13 +40,13 @@ class MoleculeDataset(Dataset):
                 adj_matrix: (pad_length, pad_length) tensor containing the adjecency matrix
                 node_features: (pad_length, 7) tensor containing the node features
                 r: (3000) tensor containing the real space values
-                pf: (3000) tensor containing the pair distribution function values
-                pad_mask: (pad_length, 1) tensor containing a mask for the padding
+                pdf: (3000) tensor containing the pair distribution function values
+                pad_mask: (pad_length) tensor containing a mask for the padding
         """
         sample_path = self.sample_list[idx]
         edge_features, edge_indices, node_features, r, pdf = load_structure(sample_path)
 
-        pad_mask = torch.zeros((node_features.shape[0], 1), dtype=torch.bool)
+        pad_mask = torch.zeros(self.pad_length, dtype=torch.bool)
         pad_mask[node_features.shape[0]:] = True
 
         node_features = pad_array(node_features, self.pad_length, 0)

@@ -14,14 +14,14 @@ def self_attention_pretransform(sample_dict):
             node_features: (pad_length, 7) tensor containing the node features
             r: (3000) tensor containing the real space values
             pdf: (3000) tensor containing the pair distribution function values
-            pad_mask: (pad_length, 1) tensor containing a mask for the padding
+            pad_mask: (pad_length) tensor containing a mask for the padding
     returns:
         sample_dict: dictionary containing tensors:
             edge_sequence: (pad_length * (pad_length - 1) / 2) tensor containing the flattened upper
                 triangle of the adjacency matrix
             r: (3000) tensor containing the real space values
             pdf: (3000) tensor containing the pair distribution function values
-            pad_mask: (pad_length, 1) tensor containing a mask for the padding
+            pad_mask: (pad_length) tensor containing a mask for the padding
             pad_mask_sequence: (pad_length * (pad_length - 1) / 2) tensor containing a mask for the
                 flattened upper triangle of the adjacency matrix
     """
@@ -43,9 +43,6 @@ def self_attention_pretransform(sample_dict):
 
     sample_dict['edge_sequence'] = edge_sequence
     sample_dict['pad_mask_sequence'] = pad_mask_seq
-    
-    # Remove unnecessary tensors
-    sample_dict.pop('node_features')
 
     return sample_dict
 
@@ -60,14 +57,14 @@ def self_attention_posttransform(batch_dict):
                 flattened upper triangle of the adjacency matrix
             r: (batch_size, 3000) tensor containing the real space values
             pdf: (batch_size, 3000) tensor containing the pair distribution function values
-            pad_mask: (batch_size, pad_length, 1) tensor containing a mask for the padding
+            pad_mask: (batch_size, pad_length) tensor containing a mask for the padding
             pad_mask_sequence: (batch_size, pad_length * (pad_length - 1) / 2) tensor containing a
                 mask for the flattened upper triangle of the adjacency matrix
     returns:
         adj_matrix: (batch_size, pad_length, pad_length) tensor containing the adjecency matrix
         r: (batch_size, 3000) tensor containing the real space values
         pdf: (batch_size, 3000) tensor containing the pair distribution function values
-        pad_mask: (batch_size, pad_length, 1) tensor containing a mask for the padding
+        pad_mask: (batch_size, pad_length) tensor containing a mask for the padding
     """
     edge_seq = batch_dict['edge_sequence']
     pad_mask = batch_dict['pad_mask']
@@ -80,7 +77,7 @@ def self_attention_posttransform(batch_dict):
     adj_matrix[:, upper_index[0], upper_index[1]] = edge_seq
     adj_matrix[:, upper_index[1], upper_index[0]] = edge_seq
     
-    atom_species = batch_dict['node_features'][:,0]
+    atom_species = batch_dict['node_features'][:, :, 0]
 
     return adj_matrix, atom_species, r, pdf, pad_mask
 
@@ -93,15 +90,15 @@ class SelfAttentionNetwork(nn.Module):
         super().__init__()
         self.device = args.device
         self.time_dim = args.time_dim
-        self.num_classes = args.num_classes
-        self.size = self.pad_length
+        self.channels = 1 + args.time_dim
+        self.size = args.pad_length
 
-        self.sa1 = EdgeSelfAttention(num_heads=1, channels=1, size=self.size)
-        self.sa2 = EdgeSelfAttention(num_heads=1, channels=1, size=self.size)
-        self.sa3 = EdgeSelfAttention(num_heads=1, channels=1, size=self.size)
-        self.sa4 = EdgeSelfAttention(num_heads=1, channels=1, size=self.size)
+        self.sa1 = EdgeSelfAttention(num_heads=1, channels=self.channels, size=self.size)
+        self.sa2 = EdgeSelfAttention(num_heads=1, channels=self.channels, size=self.size)
+        self.sa3 = EdgeSelfAttention(num_heads=1, channels=self.channels, size=self.size)
+        self.sa4 = EdgeSelfAttention(num_heads=1, channels=self.channels, size=self.size)
 
-        self.outc = nn.Conv2d(3, 1, kernel_size=1)
+        self.out = nn.Linear(self.channels, 1)
 
     def pos_encoding(self, t, channels):
         inv_freq = 1.0 / (
@@ -113,7 +110,7 @@ class SelfAttentionNetwork(nn.Module):
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
         return pos_enc
 
-    def forward(self, batch, t, labels=None):
+    def forward(self, batch, t):
         """
         forward pass of the network
         args:
@@ -133,16 +130,17 @@ class SelfAttentionNetwork(nn.Module):
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
         t = t[:, :, None].repeat(1, x.shape[-2], x.shape[-1])
-
         x = torch.concat([x, t], dim=1)
 
+        # X shape: (batch_size, 1 + time_dim, pad_length * (pad_length - 1) / 2)
+        x = x.permute(0, 2, 1) # swap to fit into mha
         x = self.sa1(x, mask)
         x = self.sa2(x, mask)
         x = self.sa3(x, mask)
         x = self.sa4(x, mask)
 
-        x = self.outc(x)
+        x = self.out(x)
         
-        batch['edge_sequence'] = x.squeeze(1)
+        batch['edge_sequence'] = x.squeeze(-1)
 
         return batch

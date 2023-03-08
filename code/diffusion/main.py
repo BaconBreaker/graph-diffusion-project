@@ -49,6 +49,8 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate to use for training")
 
     # ## Noise/Diffusion parameters ##
+    parser.add_argument("--diffusion", type=str, default="gaussian",
+                        help="Diffusion model to use")
     parser.add_argument("--noise_shape", type=int, nargs="+", default=[3, 64, 64])
     parser.add_argument("--model_target", type=str, default="noise",
                         help="Target of the model, options: noise, image")
@@ -57,12 +59,14 @@ def parse_args():
     parser.add_argument("--n_values", type=int, default=7,
                         help="Number of values each categorical variable can take. \
                             Only for uniform categorical noise")
-    parser.add_argument("--noise_function", type=str, default="gaussian",
-                        help="Noise function to use, options: gaussian, uniform, symmetricgaussian")
     parser.add_argument("--diffusion_timesteps", type=int, default=100,
                         help="Number of diffusion timesteps to use")
     parser.add_argument("--noise_schedule", type=str, default="cosine",
                         help="Noise schedule to use, options: linear, cosine")
+    parser.add_argument("--time_dim", type=int, default=2,
+                        help="Dimension of the time axis")
+    parser.add_argument("--tensors_to_diffuse", type=str, nargs="+", default=["adj_matrix"],
+                        help="Names of the tensors that should be diffused")
 
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)

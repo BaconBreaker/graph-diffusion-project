@@ -4,8 +4,8 @@ import logging
 import torch
 import torch.nn.functional as f
 
-from ..diffusion_modules.BaseDiffusion import Diffusion
-from ..utils.stuff import unsqueeze_n, cum_matmul, cat_dist
+from diffusion_modules.BaseDiffusion import Diffusion
+from utils.stuff import unsqueeze_n, cum_matmul, cat_dist
 
 
 class UniformCategoricalDiffusion(Diffusion):

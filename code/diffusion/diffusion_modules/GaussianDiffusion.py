@@ -15,8 +15,8 @@ def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
     return res
 
 
-def generate_gaussian_noise(n, shape, device):
-    return torch.randn((n, *shape)).to(device)
+def generate_gaussian_noise(n, shape):
+    return torch.randn((n, *shape))
 
 
 def generate_noise(noise_function, n, *args, **kwargs):
@@ -31,7 +31,6 @@ def image_sample_post_process(x):
     return x
 
 
-
 def x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, _beta, noise, x_0, x_t):
     """Computes x_{t-1} from x_0, x_t given, along with alpha, alpha_hat and beta."""
     mu_part1 = torch.sqrt(alpha) * (1 - alpha_hat) * x_t
@@ -43,67 +42,82 @@ def x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, _beta, noise, x_0, x_t):
 
 
 class GaussianDiffusion(Diffusion):
-    def __init__(self, noise_shape, model_target="noise", *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.noise_shape = noise_shape
-        self.model_target = model_target
+    def __init__(self, args_, *args, **kwargs):
+        super().__init__(args_, *args, **kwargs)
+        self.noise_shape = args_.noise_shape
+        self.model_target = args_.model_target
+        self.tensors_to_diffuse = args_.tensors_to_diffuse
 
     def noise_function(self, shape):
         return torch.randn(shape)
 
-    def sample_from_noise_fn(self, n):
-        samples = [self.noise_function(self.noise_shape) for _ in range(n)]
-        return torch.stack(samples).to(self.device)
+    def sample_from_noise_fn(self, noise_shape):
+        samples = self.noise_function(noise_shape)
+        return samples
 
-    def diffuse(self, x, t):
+    def diffuse(self, batch_dict, t):
+        noise = []
+        # Tensors_to_diifuse is a parser arg that specifies which tensors to diffuse
+        for name in self.tensors_to_diffuse:
+            n, x = self._diffuse(batch_dict[name], t)
+            noise.append(n)
+            batch_dict[name] = x
+        return batch_dict, noise
+
+    def _diffuse(self, x, t):
         """Computes the diffusion process. Returns x_t and epsilon_t."""
         n = x.size(0)
         x_n_dims = len(x.shape[1:])
         sqrt_alpha_hat = unsqueeze_n(torch.sqrt(self.alpha_hat[t]), x_n_dims)
         sqrt_one_minus_alpha_hat = unsqueeze_n(torch.sqrt(1 - self.alpha_hat[t]), x_n_dims)
-        n = x.size(0)
-        epsilon = self.sample_from_noise_fn(n)
+        epsilon = self.sample_from_noise_fn(x.shape)
         x_t = sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * epsilon
         return x_t, epsilon
 
-    def sample(self, model, n, labels=None, sample_post_process=None):
+    def sample(self, model, batch_dict):
         """Sample n examples from the model, with optional labels for conditional sampling.
         The `labels` argument is ignored if the model is not conditional.
         """
-        if self.conditional:
-            sample_args = [n, model, labels]
-        else:
-            sample_args = [n, model]
 
-        logging.info(f"Sampling {n} new images....")
         model.eval()
         with torch.no_grad():
-            x = self.sample_from_noise_fn(n)
+            # Make a copy of the batch_dict, and replace the tensors to diffuse with noise.
+            # This ensures that vectors used for conditioning are not modified.
+            sample_dict = batch_dict.copy()
+            for name in self.tensors_to_diffuse:
+                noise_shape = batch_dict[name].shape
+                x = self.sample_from_noise_fn(noise_shape)
+                sample_dict[name] = x
+
             for i in tqdm(reversed(range(1, self.noise_steps)), position=0):
-                x = self.sample_previous_x(x, i, *sample_args)
-
+                x = self.sample_previous_x(sample_dict, i, model)
         model.train()
-        if sample_post_process is not None:
-            x = sample_post_process(x)
 
-        return x
+        return sample_dict
 
-    def sample_previous_x(self, x, i, n, model, labels):
-        t = (torch.ones(n) * i).long().to(self.device)
-        n = x.size(0)
-        prediction = model(x, t, labels)
+    def sample_previous_x(self, sample_dict, i, model):
+        n = sample_dict[self.tensors_to_diffuse[0]].size(0)
+        t = (torch.ones(n) * i).long()
+        prediction = model(sample_dict, t)
+        
+        for name in self.tensors_to_diffuse:
+            x = sample_dict[name]
+            pred = prediction[name]
+            n_unsqueezed = len(x.shape[1:])
 
-        alpha = self.alpha[t][:, None, None, None]
-        alpha_hat = self.alpha_hat[t][:, None, None, None]
-        alpha_hat_sub_1 = self.alpha_hat[t - 1][:, None, None, None]
-        beta = self.beta[t][:, None, None, None]
-        noise = self.sample_from_noise_fn(n)
+            alpha = unsqueeze_n(self.alpha[t], n_unsqueezed)
+            alpha_hat = unsqueeze_n(self.alpha_hat[t], n_unsqueezed)
+            alpha_hat_sub_1 = unsqueeze_n(self.alpha_hat[t - 1], n_unsqueezed)
+            beta = unsqueeze_n(self.beta[t], n_unsqueezed)
 
-        if self.model_target == "noise":
-            x = x_t_sub_from_noise(alpha, alpha_hat, beta, noise, prediction, x)
-        else:
-            x = x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, beta, noise, prediction, x)
-        return x
+            noise = self.sample_from_noise_fn(x.shape)
+            if self.model_target == "noise":
+                x = x_t_sub_from_noise(alpha, alpha_hat, beta, noise, pred, x)
+            else:
+                x = x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, beta, noise, pred, x)
+            sample_dict[name] = x
+
+        return sample_dict
 
     def loss(self,  prediction, noise, _batch):
         """Computes the loss for the diffusion process."""

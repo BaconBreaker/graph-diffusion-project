@@ -24,7 +24,7 @@ def get_model(args):
         pretransform = None
         posttransform = None
     elif args.model == "self_attention":
-        model = SelfAttentionNetwork(num_classes=args.num_classes, input_size=args.image_size).to(args.device)
+        model = SelfAttentionNetwork(args).to(args.device)
         pretransform = self_attention_pretransform
         posttransform = self_attention_posttransform
     else:
@@ -41,9 +41,7 @@ def get_diffusion(args):
         diffusion: torch.nn.Module
     """
     if args.diffusion == "gaussian":
-        noise_shape = args.noise_shape
-        model_target = args.model_target
-        diffusion = GaussianDiffusion(noise_shape, model_target)
+        diffusion = GaussianDiffusion(args)
     elif args.diffusion == "uniform_categorical":
         n_categorical_vars = args.n_categorical_vars
         n_values = args.n_values

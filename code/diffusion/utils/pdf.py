@@ -101,12 +101,14 @@ def calculate_pdf_batch(matrix_in, atom_species, pad_mask):
         pad_mask (torch.Tensor): batch of padding masks of shape (batch_size, n)
                                  (1 if atom is not padded, 0 if atom is padded)
     """
+    # Invert padding mask, since we want to keep the atoms that are not padded
+    pad_mask = torch.logical_not(pad_mask.bool())
     pdfs = []
     if matrix_in.shape[2] != 3:  # If matrix_in is adjecency matrix
         for i in range(matrix_in.shape[0]):
-            adj_matrix = matrix_in[i][:, pad_mask[i]][:, :, pad_mask[i]]
+            adj_matrix = matrix_in[i][pad_mask[i]][:, pad_mask[i]]
             species = atom_species[i][pad_mask[i]]
-            pdfs.append(calculate_pdf_from_adjecency_matrix(adj_matrix[0], species))
+            pdfs.append(calculate_pdf_from_adjecency_matrix(adj_matrix, species))
     else:  # If matrix_in is point cloud
         for i in range(matrix_in.shape[0]):
             point_cloud = matrix_in[i][pad_mask[i]]

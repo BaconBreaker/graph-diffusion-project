@@ -21,7 +21,7 @@ def pearson_metric(predicted_pdf, target_pdf):
         pearson.append(
             pearsonr(predicted_pdf[i].detach().cpu().numpy(), target_pdf[i].detach().cpu().numpy())[0]
         )
-    return torch.tensor(pearson, dtype=torch.float32)
+    return torch.tensor(pearson, dtype=torch.float32).mean()
 
 
 def mse_metric(predicted_pdf, target_pdf):
@@ -33,7 +33,7 @@ def mse_metric(predicted_pdf, target_pdf):
     returns:
         mse (torch.Tensor): mean squared error of shape (batch_size,)
     """
-    return torch.mean((predicted_pdf - target_pdf) ** 2, dim=1)
+    return torch.mean((predicted_pdf - target_pdf) ** 2, dim=1).mean()
 
 
 def rwp_metric(predicted_pdf, true_pdf, sigmas=None):
@@ -53,4 +53,4 @@ def rwp_metric(predicted_pdf, true_pdf, sigmas=None):
     true_squarred = true_pdf ** 2
     rwp = torch.sqrt((sigmas_inv * diff_squarred).sum(dim=1) / (sigmas_inv * true_squarred).sum(dim=1))
 
-    return rwp
+    return rwp.mean()
