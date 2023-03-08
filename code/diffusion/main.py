@@ -52,6 +52,8 @@ def parse_args():
 
     # ## Noise/Diffusion parameters ##
     parser.add_argument("--noise_shape", type=int, nargs="+", default=[3, 64, 64])
+    parser.add_argument("--model_target", type=str, default="noise",
+                        help="Target of the model, options: noise, image")
     parser.add_argument("--noise_function", type=str, default="gaussian",
                         help="Noise function to use, options: gaussian, uniform, symmetricgaussian")
     parser.add_argument("--diffusion_timesteps", type=int, default=100,
@@ -60,7 +62,7 @@ def parse_args():
                         help="Noise schedule to use, options: linear, cosine")
 
     # ## Pytorch Lightning parameters ##
-    parser = pl.Trainer.add_argparse_args(parser)
+    parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)
 
     return parser.parse_args()
 

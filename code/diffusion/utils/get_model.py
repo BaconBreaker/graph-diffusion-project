@@ -21,24 +21,9 @@ def get_model(args):
         pretransform = None
         posttransform = None
     elif args.model == "self_attention":
-        model = SelfAttentionNetwork(num_classes=args.num_classes, input_size=args.image_size).to(args.device)
+        model = SelfAttentionNetwork(args).to(args.device)
         pretransform = self_attention_pretransform
         posttransform = self_attention_posttransform
     else:
         raise ValueError(f"Model {args.model} not implemented")
     return model, pretransform, posttransform
-
-
-def get_diffusion(args):
-    """
-    Returns the diffusion model given the args
-    args:
-        args: argparse object
-    returns:
-        diffusion: torch.nn.Module
-    """
-    if args.diffusion == "ddpm":
-        diffusion = DDPM()
-    else:
-        raise ValueError(f"Diffusion {args.diffusion} not implemented")
-    return diffusion

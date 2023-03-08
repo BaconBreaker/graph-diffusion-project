@@ -10,16 +10,13 @@ from dataloader import MoleculeDataModule
 from utils.get_model import get_model
 from utils.logging import setup_logging
 
-from carbontracker.tracker import CarbonTracker
-
+from DiffusionWrapper import DiffusionWrapper
 
 def train(args):
-    tracker = CarbonTracker(epochs=args.epochs)
-
     setup_logging(args.run_name)
     model, pretransform, posttransform = get_model(args)
     diffusion_model = get_diffusion()
-    dataloader = MoleculeDataModule(args=args, preransform=pretransform)
+    dataloader = MoleculeDataModule(args=args, transform=pretransform)
     diffusion = DiffusionWrapper(denoising_fn=model, diffusion_model=diffusion_model, lr=args.lr, posttransform=posttransform)
 
     trainer = pl.Trainer.from_argparse_args(args)
