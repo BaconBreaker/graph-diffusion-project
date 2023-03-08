@@ -5,8 +5,6 @@ Main training functionality for the diffusion model.
 """
 import pytorch_lightning as pl
 
-from diffusion import DiffusionWrapper, get_diffusion
-
 from dataloader import MoleculeDataModule
 
 from utils.get_model import get_model
