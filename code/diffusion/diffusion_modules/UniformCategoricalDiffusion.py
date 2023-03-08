@@ -4,8 +4,9 @@ import logging
 import torch
 import torch.nn.functional as f
 
-from BaseDiffusion import Diffusion
-from ..utils.stuff import unsqueeze_n, cum_matmul, cat_dist
+from diffusion_modules.BaseDiffusion import Diffusion
+from utils.stuff import unsqueeze_n, cum_matmul, cat_dist
+
 
 class UniformCategoricalDiffusion(Diffusion):
     def __init__(self, n_categorical, n_vals, *args, **kwargs):
@@ -158,3 +159,7 @@ class UniformCategoricalDiffusion(Diffusion):
 
         model.train()
         return x
+
+    def loss(self, prediction, _noise, batch):
+        x0 = batch["x0"]
+        return f.cross_entropy(prediction, x0.argmax(dim=-1))

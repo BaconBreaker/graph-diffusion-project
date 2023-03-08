@@ -2,6 +2,8 @@ import torch
 from tqdm.auto import tqdm
 import logging
 
+import torch.nn.functional as f
+
 from BaseDiffusion import Diffusion
 from ..utils.stuff import unsqueeze_n
 
@@ -102,3 +104,7 @@ class GaussianDiffusionForNoise(Diffusion):
         else:
             x = x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, beta, noise, prediction, x)
         return x
+
+    def loss(self,  prediction, noise, _batch):
+        """Computes the loss for the diffusion process."""
+        return f.mse_loss(prediction, noise)

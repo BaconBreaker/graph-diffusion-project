@@ -1,5 +1,5 @@
 import torch
-import torch.functional as f
+import torch.nn.functional as f
 
 
 def unsqueeze_n(tensor, n, dims=None):
