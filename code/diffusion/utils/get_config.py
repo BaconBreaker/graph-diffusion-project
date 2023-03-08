@@ -45,9 +45,9 @@ def get_diffusion(args):
         model_target = args.model_target
         diffusion = GaussianDiffusion(noise_shape, model_target)
     elif args.diffusion == "uniform_categorical":
-        n_categorical = args.n_categorical_vars
-        n_vals = args.values
-        diffusion = UniformCategoricalDiffusion(*args)
+        n_categorical_vars = args.n_categorical_vars
+        n_values = args.n_values
+        diffusion = UniformCategoricalDiffusion(n_categorical_vars, n_values)
     else:
         raise ValueError(f"Diffusion {args.diffusion} not implemented")
     return diffusion

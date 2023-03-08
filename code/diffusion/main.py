@@ -52,6 +52,11 @@ def parse_args():
     parser.add_argument("--noise_shape", type=int, nargs="+", default=[3, 64, 64])
     parser.add_argument("--model_target", type=str, default="noise",
                         help="Target of the model, options: noise, image")
+    parser.add_argument("--n_categorical_vars", type=int, default=3,
+                        help="Nubme of categorical variables. Only for uniform categorical noise")
+    parser.add_argument("--n_values", type=int, default=7,
+                        help="Number of values each categorical variable can take. \
+                            Only for uniform categorical noise")
     parser.add_argument("--noise_function", type=str, default="gaussian",
                         help="Noise function to use, options: gaussian, uniform, symmetricgaussian")
     parser.add_argument("--diffusion_timesteps", type=int, default=100,
