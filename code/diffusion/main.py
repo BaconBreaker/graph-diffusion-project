@@ -2,9 +2,7 @@
 Main script for training the diffusion model.
 
 Example of how to run the script:
-python main.py --dataset_path <some_path> --run_name <some_name> 
-    --device cuda --max_epochs 1000 --batch_size 16 
-    --check_val_every_n_epoch 10
+python main.py --dataset_path <some_path> --run_name <some_name> --device cuda --max_epochs 1000 --batch_size 16 --check_val_every_n_epoch 10
 """
 import argparse
 import logging
