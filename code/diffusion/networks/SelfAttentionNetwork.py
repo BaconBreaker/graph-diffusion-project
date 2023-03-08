@@ -20,7 +20,7 @@ def self_attention_pretransform(sample_dict):
             edge_sequence: (pad_length * (pad_length - 1) / 2) tensor containing the flattened upper
                 triangle of the adjacency matrix
             r: (3000) tensor containing the real space values
-            pf: (3000) tensor containing the pair distribution function values
+            pdf: (3000) tensor containing the pair distribution function values
             pad_mask: (pad_length, 1) tensor containing a mask for the padding
             pad_mask_sequence: (pad_length * (pad_length - 1) / 2) tensor containing a mask for the
                 flattened upper triangle of the adjacency matrix
@@ -50,24 +50,39 @@ def self_attention_pretransform(sample_dict):
     return sample_dict
 
 
-def self_attention_posttransform(edge_sequence):
+def self_attention_posttransform(batch_dict):
     """
     Function to transform to output from a flattened upper triangle of the adjacency matrix to a
-    full adjacency matrix.
+    full adjacency matrix. Returns the nessecary tensors to simulate a pdf.
     args:
-        edge_sequence: (pad_length * (pad_length - 1) / 2) tensor containing the flattened upper
-            triangle of the adjacency matrix
+        batch_dict: dictionary containing tensors:
+            edge_sequence: (batch_size, pad_length * (pad_length - 1) / 2) tensor containing the
+                flattened upper triangle of the adjacency matrix
+            r: (batch_size, 3000) tensor containing the real space values
+            pdf: (batch_size, 3000) tensor containing the pair distribution function values
+            pad_mask: (batch_size, pad_length, 1) tensor containing a mask for the padding
+            pad_mask_sequence: (batch_size, pad_length * (pad_length - 1) / 2) tensor containing a
+                mask for the flattened upper triangle of the adjacency matrix
+    returns:
+        adj_matrix: (batch_size, pad_length, pad_length) tensor containing the adjecency matrix
+        r: (batch_size, 3000) tensor containing the real space values
+        pdf: (batch_size, 3000) tensor containing the pair distribution function values
+        pad_mask: (batch_size, pad_length, 1) tensor containing a mask for the padding
     """
-    # Find the upper triangle of the adjacency matrix
-    upper_index = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1])
-    # Remove the diagonal
-    upper_index[:,upper_index[0] != upper_index[1]]
-    # Flatten the upper triangle of the adjacency matrix
-    adj_matrix = torch.zeros((edge_sequence.shape[0], edge_sequence.shape[0]))
-    adj_matrix[upper_index[0], upper_index[1]] = edge_sequence
-    adj_matrix[upper_index[1], upper_index[0]] = edge_sequence
+    edge_seq = batch_dict['edge_sequence']
+    pad_mask = batch_dict['pad_mask']
+    r = batch_dict['r']
+    pdf = batch_dict['pdf']
+    
+    adj_matrix = torch.zeros(edge_seq.shape[0], pad_mask.shape[1], pad_mask.shape[1])
+    upper_index = torch.triu_indices(adj_matrix.shape[1], adj_matrix.shape[2])
+    upper_index = upper_index[:,upper_index[0] != upper_index[1]]
+    adj_matrix[:, upper_index[0], upper_index[1]] = edge_seq
+    adj_matrix[:, upper_index[1], upper_index[0]] = edge_seq
+    
+    atom_species = batch_dict['node_features'][:,0]
 
-    return adj_matrix
+    return adj_matrix, atom_species, r, pdf, pad_mask
 
 
 class SelfAttentionNetwork(nn.Module):
@@ -79,11 +94,12 @@ class SelfAttentionNetwork(nn.Module):
         self.device = args.device
         self.time_dim = args.time_dim
         self.num_classes = args.num_classes
+        self.size = self.pad_length
 
-        self.sa1 = EdgeSelfAttention(num_heads=1, channels=1)
-        self.sa2 = EdgeSelfAttention(num_heads=1, channels=1)
-        self.sa3 = EdgeSelfAttention(num_heads=1, channels=1)
-        self.sa4 = EdgeSelfAttention(num_heads=1, channels=1)
+        self.sa1 = EdgeSelfAttention(num_heads=1, channels=1, size=self.size)
+        self.sa2 = EdgeSelfAttention(num_heads=1, channels=1, size=self.size)
+        self.sa3 = EdgeSelfAttention(num_heads=1, channels=1, size=self.size)
+        self.sa4 = EdgeSelfAttention(num_heads=1, channels=1, size=self.size)
 
         self.outc = nn.Conv2d(3, 1, kernel_size=1)
 

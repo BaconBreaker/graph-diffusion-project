@@ -60,7 +60,7 @@ def parse_args():
                         help="Noise schedule to use, options: linear, cosine")
 
     # ## Pytorch Lightning parameters ##
-    parser = pl.Trainer.add_argparse_args(parser)
+    parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)
 
     return parser.parse_args()
 
