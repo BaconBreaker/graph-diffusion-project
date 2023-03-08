@@ -108,14 +108,14 @@ class EdgeSelfAttention(nn.Module):
             nn.Linear(channels, channels)
         )
 
-    def forward(self, x):
+    def forward(self, x, mask=None):
         """
         Forward function, takes in a tensor of shape (batch_size, n, channels)
         """
         x = self.ln(x)
-        
-        att_val, _ = self.mha(x, x, x)
+
+        att_val, _ = self.mha(x, x, x, key_padding_mask=mask)
         att_val = att_val + x
         att_val = self.ff_self(att_val) + att_val
-        
+
         return att_val

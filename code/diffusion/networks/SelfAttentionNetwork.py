@@ -13,7 +13,7 @@ def self_attention_pretransform(sample_dict):
             adj_matrix: (pad_length, pad_length) tensor containing the adjecency matrix
             node_features: (pad_length, 7) tensor containing the node features
             r: (3000) tensor containing the real space values
-            pf: (3000) tensor containing the pair distribution function values
+            pdf: (3000) tensor containing the pair distribution function values
             pad_mask: (pad_length, 1) tensor containing a mask for the padding
     returns:
         sample_dict: dictionary containing tensors:
@@ -29,16 +29,17 @@ def self_attention_pretransform(sample_dict):
     # Find the upper triangle of the adjacency matrix
     upper_index = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1])
     # Remove the diagonal
-    upper_index[:,upper_index[0] != upper_index[1]]
+    upper_index = upper_index[:,upper_index[0] != upper_index[1]]
     # Flatten the upper triangle of the adjacency matrix
     edge_sequence = adj_matrix[upper_index[0], upper_index[1]]
 
     # Make a corresponding mask
     pad_mask = sample_dict['pad_mask']
-    n_real = pad_mask.sum() # By summing the mask, we get the number of non-padded nodes
-    pad_mask_seq = torch.ones(n_real * (n_real - 1) // 2)
+    n_real = pad_mask.shape[-1] - pad_mask.sum() # By summing the mask, we get the number of padded nodes
+    pad_length = adj_matrix.shape[-1]
+    pad_mask_seq = torch.zeros(pad_length * (pad_length - 1) // 2, dtype=torch.bool)
     out_of_bounds = torch.logical_or(upper_index[0] >= n_real-1, upper_index[1] >= n_real-1)
-    pad_mask_seq[out_of_bounds] = 0
+    pad_mask_seq[out_of_bounds] = True
 
     sample_dict['edge_sequence'] = edge_sequence
     sample_dict['pad_mask_sequence'] = pad_mask_seq
@@ -64,6 +65,7 @@ def self_attention_posttransform(edge_sequence):
     # Flatten the upper triangle of the adjacency matrix
     adj_matrix = torch.zeros((edge_sequence.shape[0], edge_sequence.shape[0]))
     adj_matrix[upper_index[0], upper_index[1]] = edge_sequence
+    adj_matrix[upper_index[1], upper_index[0]] = edge_sequence
 
     return adj_matrix
 
@@ -102,13 +104,15 @@ class SelfAttentionNetwork(nn.Module):
             batch: batch dictionary containing:
                 edge_sequence: (batch_size, pad_length * (pad_length - 1) / 2) tensor containing the
                     flattened upper triangle of the adjacency matrix
-                node_features: (batch_size, pad_length, 7) tensor containing the node features
                 r: (batch_size, 3000) tensor containing the real space values
                 pdf: (batch_size, 3000) tensor containing the pair distribution function values
                 pad_mask: (batch_size, pad_length, 1) tensor containing a mask for the padding
+                pad_mask_sequence: (batch_size, pad_length * (pad_length - 1) / 2) tensor containing
+                    a mask for the flattened upper triangle of the adjacency matrix
             t: (batch_size, 1) tensor containing the time
         """
         x = batch['edge_sequence'].unsqueeze(1)
+        mask = batch['pad_mask_sequence']
 
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
@@ -116,10 +120,10 @@ class SelfAttentionNetwork(nn.Module):
 
         x = torch.concat([x, t], dim=1)
 
-        x = self.sa1(x)
-        x = self.sa2(x)
-        x = self.sa3(x)
-        x = self.sa4(x)
+        x = self.sa1(x, mask)
+        x = self.sa2(x, mask)
+        x = self.sa3(x, mask)
+        x = self.sa4(x, mask)
 
         x = self.outc(x)
         

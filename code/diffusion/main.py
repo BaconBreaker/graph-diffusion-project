@@ -8,7 +8,6 @@ python main.py --dataset_path <some_path> --run_name <some_name>
 """
 import argparse
 import logging
-import torch
 import pytorch_lightning as pl
 from train import train
 
@@ -43,7 +42,7 @@ def parse_args():
                         help="Number of validation samples to use for training, None means all")
     parser.add_argument("--val_split", type=float, default=0.1,
                         help="Fraction of training data to use for validation")
-    parser.add_argument("--pad_length", type=int, default=None,
+    parser.add_argument("--pad_length", type=int, default=512, #Longest over all datasets is 511
                         help="Length to pad the graphs to, None means no the script will pad to the max length")
 
     # ## Model parameters ##
@@ -57,7 +56,8 @@ def parse_args():
                         help="Noise function to use, options: gaussian, uniform, symmetricgaussian")
     parser.add_argument("--diffusion_timesteps", type=int, default=100,
                         help="Number of diffusion timesteps to use")
-
+    parser.add_argument("--noise_schedule", type=str, default="cosine",
+                        help="Noise schedule to use, options: linear, cosine")
 
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser)
@@ -67,17 +67,16 @@ def parse_args():
 
 def check_args(args):
     """Check if the arguments are valid"""
-    if args.device == "cuda" and not torch.cuda.is_available():
-        logger.warning("Cuda is not available, falling back to cpu")
-        args.device = "cpu"
     if args.val_split < 0 or args.val_split > 1:
         raise ValueError("val_split must be between 0 and 1")
+    if args.num_train_samples is not None and args.num_train_samples <= 0:
+        raise ValueError("num_train_samples must be positive")
+    if args.num_val_samples is not None and args.num_val_samples <= 0:
+        raise ValueError("num_val_samples must be positive")
     return args
 
 
 if __name__ == "__main__":
     args = parse_args()
     args = check_args(args)
-    args.num_classes = 10
-    args.pad_length = 135
     train(args)
