@@ -5,7 +5,7 @@ Main training functionality for the diffusion model.
 """
 import pytorch_lightning as pl
 
-from diffusion import Diffusion
+from diffusion import DiffusionWrapper, get_diffusion
 
 from dataloader import MoleculeDataModule
 
@@ -20,9 +20,9 @@ def train(args):
 
     setup_logging(args.run_name)
     model, pretransform, posttransform = get_model(args)
+    diffusion_model = get_diffusion()
     dataloader = MoleculeDataModule(args=args, preransform=pretransform)
-    diffusion = Diffusion(denoising_fn=model, posttransform=posttransform,
-                          tracker=tracker, args=args)
+    diffusion = DiffusionWrapper(denoising_fn=model, diffusion_model=diffusion_model, lr=args.lr, posttransform=posttransform)
 
     trainer = pl.Trainer.from_argparse_args(args)
     trainer.fit(diffusion, dataloader)
