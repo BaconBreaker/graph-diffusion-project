@@ -70,8 +70,8 @@ def load_structure(path):
         edge_indices = torch.tensor(file['edge_indices'][:], dtype=torch.long)  # Edge (sparse) adjecency matrix
         node_features = torch.tensor(file['node_attributes'][:], dtype=torch.float32)  # Node attributes
 
-        r = file['r'][...]  # Real space (x-axis)
-        pdf = file['pdf'][...]  # G(r) (y-axis)
+        r = torch.tensor(file['r'][...], dtype=torch.float32)
+        pdf = torch.tensor(file['pdf'][...], dtype=torch.float32)
 
     return edge_features, edge_indices, node_features, r, pdf
 

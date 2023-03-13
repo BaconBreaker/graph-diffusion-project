@@ -9,6 +9,8 @@ from diffusion_modules.UniformCategoricalDiffusion import UniformCategoricalDiff
 from networks.SelfAttentionNetwork import (SelfAttentionNetwork,
     self_attention_posttransform, self_attention_pretransform)
 from networks.ConditionalUNet import ConditionalUNet
+from networks.EquivariantNetwork import (EquivariantNetwork,
+    equivariant_posttransform, equivariant_pretransform)
 
 
 def get_model(args):
@@ -20,13 +22,17 @@ def get_model(args):
         model: torch.nn.Module
     """
     if args.model == "conditional_unet":
-        model = ConditionalUNet(num_classes=args.num_classes).to(args.device)
+        model = ConditionalUNet(num_classes=args.num_classes)
         pretransform = None
         posttransform = None
     elif args.model == "self_attention":
-        model = SelfAttentionNetwork(args).to(args.device)
+        model = SelfAttentionNetwork(args)
         pretransform = self_attention_pretransform
         posttransform = self_attention_posttransform
+    elif args.model == "equivariant":
+        model = EquivariantNetwork(args)
+        pretransform = equivariant_pretransform
+        posttransform = equivariant_posttransform
     else:
         raise ValueError(f"Model {args.model} not implemented")
     return model, pretransform, posttransform
