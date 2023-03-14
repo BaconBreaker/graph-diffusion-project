@@ -12,6 +12,14 @@ from diffpy.structure import Structure, Atom
 from diffpy.srreal.pdfcalculator import DebyePDFCalculator
 
 from mendeleev import element
+import multiprocessing as mp
+
+
+# Task for parralelization in calculate_pdf
+def task(inp):
+    atom, xyz = inp
+    atom = atom.item()
+    return Atom(element(atom).symbol, xyz)
 
 
 def multidimensional_scaling(adj_matrix):
@@ -44,12 +52,11 @@ def calculate_pdf(point_cloud, atom_species):
         pdf (np.array): array of evaluated points of the pdf function of shape (3000,)
     """
     structure = Structure()
-    for atom, xyz in zip(atom_species, point_cloud):
-        if not isinstance(atom.item(), int):
-            atom = int(atom.item())
-        else:
-            atom = atom.item()
-        structure.append(Atom(element(atom).symbol, xyz))
+    atom_species = atom_species.int()
+
+    with mp.Pool() as pool:
+        for atom in pool.imap(task, zip(atom_species, point_cloud)):
+            structure.append(atom)
 
     structure.B11 = 0.3  # Keep to 0.3, isotropic vibration on first axis
     structure.B22 = 0.3  # Keep to 0.3, isotropic vibration on second axis

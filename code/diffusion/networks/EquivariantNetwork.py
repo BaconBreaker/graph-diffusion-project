@@ -60,17 +60,19 @@ class EquivariantNetwork(nn.Module):
         self.features_out = 1  # Atom species (1)
         self.pad_length = args.pad_length
         self.T = args.diffusion_timesteps
+        self.hidden_dim = 32  # TODO: make this a parameter
 
-        self.emb_in = nn.Linear(self.features_in, 16)  # 8 hidden units
-        self.emb_out = nn.Linear(16, self.features_out)
+        self.emb_in = nn.Linear(self.features_in, self.hidden_dim)
+        self.emb_out = nn.Linear(self.hidden_dim, self.features_out)
+        self.x_out = nn.Linear(3, 3)  # To allow some rescaling of the positions
         
         self.pdf_emb = nn.Linear(3000, 10)
         
         self.time_emb = GammaNetwork()
-        
+
         layers = []
-        for _ in range(1):  # TODO: make this a parameter
-            layers.append(EGCLayer(16))
+        for _ in range(4):  # TODO: make this a parameter
+            layers.append(EGCLayer(self.hidden_dim))
         self.layers = nn.Sequential(*layers)
 
     def pos_encoding(self, t):
@@ -98,8 +100,9 @@ class EquivariantNetwork(nn.Module):
         xh = batch['xyz_atom_species']
         pdf = batch['pdf']
 
-        h0 = xh[:, :, 3].unsqueeze(-1)
-        x0 = xh[:, :, :3]
+        h = xh[:, :, 3].unsqueeze(-1)
+        x = xh[:, :, :3]
+        x0 = x.clone()
 
         # Normalize to 0-1
         t = (t / self.T).unsqueeze(-1)
@@ -107,15 +110,15 @@ class EquivariantNetwork(nn.Module):
         # Embedding
         t_emb = self.time_emb(t)
         pdf_emb = self.pdf_emb(pdf)
-        x = x0.clone()
         t_emb = t_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
-        h = torch.cat([h0, t_emb, pdf_emb], dim=-1)
+        h = torch.cat([h, t_emb, pdf_emb], dim=-1)
         h = self.emb_in(h)
         for layer in self.layers:
             x, h = layer(x, h, x0)
 
         h = self.emb_out(h)
+        x = self.x_out(x)
         x = x - x0
 
         batch['xyz_atom_species'] = torch.cat((x, h), dim=-1)
@@ -131,6 +134,8 @@ class EGCLayer(nn.Module):
         super().__init__()
         self.silu = nn.SiLU()
         self.sigmoid = nn.Sigmoid()
+        self.lnh = nn.LayerNorm([n_cat_features])
+        self.lnx = nn.LayerNorm([3])
 
         # Edge operation
         # Input = concat([hi, hj, distance from xi to x2j, distance from xi_0 to xj_0])
@@ -188,13 +193,18 @@ class EGCLayer(nn.Module):
         org_distances = torch.norm(x0[:, :, None, :] - x0[:, None, :, :], dim=-1).unsqueeze(-1)      
         differences = (x[:, :, None, :] - x[:, None, :, :])
         distances = torch.norm(differences, dim=-1).unsqueeze(-1)
+        distances_squarred = distances ** 2
+        
+        # Layer norm on node features
+        h = self.lnh(h)
+        x = self.lnx(x)
 
         # Cartesian product of all nodes
         idx_pairs_cart = torch.cartesian_prod(torch.arange(h.shape[1]), torch.arange(h.shape[1]))
         h_cart = h[:, idx_pairs_cart].view(h.shape[0], h.shape[1], h.shape[1], -1)
 
         # Edge operation
-        m_matrix = self.edge_operation(h_cart, distances, org_distances)
+        m_matrix = self.edge_operation(h_cart, distances_squarred, org_distances)
 
         # Edge inference
         e_matrix = self.edge_inference(m_matrix)
@@ -205,8 +215,8 @@ class EGCLayer(nn.Module):
         h_next = self.node_update(h, torch.sum(e_matrix * m_matrix, dim=-2))
 
         # Coordinate update
-        cor_weight = self.coordinate_update(h_cart, distances, org_distances)
-        cor_shift = differences / (torch.sqrt(distances) + 1)
+        cor_weight = self.coordinate_update(h_cart, distances_squarred, org_distances)
+        cor_shift = differences / (distances + 1)
         cor_update = torch.sum(cor_weight * cor_shift, dim=-2)
         x_next = x + cor_update
 
@@ -282,35 +292,3 @@ class PositiveLinear(torch.nn.Module):
     def forward(self, input):
         positive_weight = F.softplus(self.weight)
         return F.linear(input, positive_weight, self.bias)
-
-"""
-        # get corrdinates for all i != j
-        triu_cor = torch.triu_indices(distances.shape[1], distances.shape[2], offset=1)
-        triu_cor = triu_cor[:, triu_cor[-2] != triu_cor[-1]]  # Remove diagonal
-
-        # Flatten to calculate all m_ij at once, remember m_ij is symmetric
-        differences_flat = differences[:, triu_cor[0], triu_cor[1]]
-        distances_flat = distances[:, triu_cor[0], triu_cor[1]].unsqueeze(-1)
-        org_distances_flat = org_distances[:, triu_cor[0], triu_cor[1]]. unsqueeze(-1)
-        idx_pairs = torch.cartesian_prod(torch.arange(h.shape[1]), torch.arange(h.shape[1]))
-        hxh = h[:, idx_pairs].view(h.shape[0], h.shape[1], h.shape[1], -1)
-        h_flat = hxh[:, triu_cor[0], triu_cor[1]]
-        m = self.edge_operation(h_flat, distances_flat, org_distances_flat)
-        e = self.edge_inference(m)
-
-        m_weighted = torch.zeros(x.shape[0], x.shape[1], x.shape[1], m.shape[-1])
-        m_weighted[:, triu_cor[0], triu_cor[1]] = m * e
-
-        # Sum over j to calculate the aggregated m_ij to calulate the node update
-        m_sum = torch.sum(m_weighted, dim=2)
-        h_next = self.node_update(h, m_sum)
-
-        # Calculate the coordinate update
-        cor_update = self.coordinate_update(h_flat, distances_flat, org_distances_flat)
-        cor_update_matrix = torch.zeros(x.shape[0], x.shape[1], x.shape[1], cor_update.shape[-1])
-        cor_update_matrix[:, triu_cor[0], triu_cor[1]] = cor_update
-        differences_scaled = (differences / (torch.sqrt(distances.unsqueeze(-1)) + 1)).triu().sum(dim=2)
-        x_next = x + differences_scaled*cor_update_matrix.sum(dim=2)
-
-        return x_next, h_next
-"""

@@ -31,7 +31,7 @@ class CarbonTrackerCallback(Callback):
         else:
             self.val_every_n_epochs = 1
 
-        self.train_tracker = CarbonTracker(epochs=self.max_epochs, epochs_before_pred=-1, monitor_epochs=-1,
+        self.train_tracker = CarbonTracker(epochs=self.max_epochs, epochs_before_pred=-1, monitor_epochs=2,
                                            log_dir=os.path.join(os.getcwd(), "lightning_logs", "carbontracker"),
                                            log_file_prefix="train_{}".format(args.run_name),
                                            verbose=0)

@@ -69,8 +69,8 @@ def parse_args():
                         help="Names of the tensors that should be diffused")
 
     # ## Callbacks ##
-    parser.add_argument("--disable_carbon_tracker", action="store_false",
-                        help="Whether to use the carbon tracker callback")
+    parser.add_argument("--disable_carbon_tracker", action="store_true",
+                        help="Whether to disable the carbon tracker callback")
 
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)
