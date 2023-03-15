@@ -1,6 +1,5 @@
 import torch
 from tqdm.auto import tqdm
-import logging
 
 import torch.nn.functional as f
 
@@ -66,12 +65,12 @@ class GaussianDiffusion(Diffusion):
 
     def _diffuse(self, x, t):
         """Computes the diffusion process. Returns x_t and epsilon_t."""
-        n = x.size(0)
         x_n_dims = len(x.shape[1:])
         sqrt_alpha_hat = unsqueeze_n(torch.sqrt(self.alpha_hat[t]), x_n_dims)
         sqrt_one_minus_alpha_hat = unsqueeze_n(torch.sqrt(1 - self.alpha_hat[t]), x_n_dims)
         epsilon = self.sample_from_noise_fn(x.shape)
         x_t = sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * epsilon
+
         return x_t, epsilon
 
     def sample(self, model, batch_dict):
