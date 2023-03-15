@@ -50,7 +50,14 @@ class MoleculeDataset(Dataset):
         pad_mask[node_features.shape[0]:] = True
 
         node_features = pad_array(node_features, self.pad_length, 0)
-        adj_matrix = make_adjecency_matrix(edge_indices, edge_features, self.pad_length)
+        
+        xyz = node_features[:, 4:7]
+        adj_matrix = torch.zeros((self.pad_length, self.pad_length))
+        distances = torch.cdist(xyz, xyz)
+        # Set the entries of the adjecency matrix to the entries of the distance matrix
+        adj_matrix[:node_features.shape[0], :node_features.shape[0]] = distances
+
+        # adj_matrix = make_adjecency_matrix(edge_indices, edge_features, self.pad_length)
 
         sample_dict = {
             'adj_matrix': adj_matrix,
