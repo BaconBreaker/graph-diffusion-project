@@ -9,10 +9,10 @@ from utils.stuff import unsqueeze_n, cum_matmul, cat_dist
 
 
 class UniformCategoricalDiffusion(Diffusion):
-    def __init__(self, n_categorical_vars, n_values, *args, **kwargs):
+    def __init__(self, n_categorical_vars, n_classes, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.n_categorical_vars = n_categorical_vars  # Number of categorical variables
-        self.values = n_values  # Number of values for each categorical variable
+        self.n_classes = n_classes  # Number of classes for each categorical variable
 
     def sample_from_noise_fn(self, ts, bar=False):
         if bar:
@@ -29,7 +29,7 @@ class UniformCategoricalDiffusion(Diffusion):
         if isinstance(t, torch.Tensor):
             t = t.clone()
         t -= 1
-        k = self.values
+        k = self.n_classes
         q1 = unsqueeze_n(1 - self.beta[t], 2) * torch.eye(k).unsqueeze(0)
         q2 = unsqueeze_n(self.beta[t], 2) * torch.ones([k, k]).unsqueeze(0)
         q = q1 + q2 / k
@@ -124,7 +124,7 @@ class UniformCategoricalDiffusion(Diffusion):
         model_out = model(xt, t, labels=labels)
         model_out = f.softmax(model_out, dim=-1)
         p = self.p_previous_x(xt, model_out, t)
-        o = cat_dist(p, self.values).float()
+        o = cat_dist(p, self.n_classes).float()
         return o
 
     def diffuse(self, x_0, t):
@@ -132,12 +132,12 @@ class UniformCategoricalDiffusion(Diffusion):
         q_t_bar = self.get_qt_bar(t)
         # probs = x_0 @ q_t_bar
         probs = torch.einsum("abi,abij->abj", x_0, q_t_bar)
-        o = cat_dist(probs, self.values).float()
+        o = cat_dist(probs, self.n_classes).float()
         return o, q_t_bar
 
     def uniform_x(self, n):
-        x = torch.randint(0, self.values, (n, self.n_categorical_vars))
-        x = f.one_hot(x, self.values).float()
+        x = torch.randint(0, self.n_classes, (n, self.n_categorical_vars))
+        x = f.one_hot(x, self.n_classes).float()
         return x
 
     def sample(self, model, n, labels=None):
