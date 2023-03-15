@@ -5,6 +5,22 @@ Functions for calculating metrics between predicted and target pdfs
 """
 import torch
 from scipy.stats import pearsonr
+from torchmetrics import SignalNoiseRatio, PeakSignalNoiseRatio
+
+
+def get_metrics(args):
+    """
+    Returns a list of tuples (metric_name, metric_function) given args
+    """
+    metrics = []
+    metric_list = [m.lower() for m in args.metrics]
+    if "mse" in metric_list:
+        metrics.append(("MSE", mse_metric))
+    if "snr" in metric_list:
+        metrics.append(("SNR", SignalNoiseRatio()))
+    if "psnr" in metric_list:
+        metrics.append(("PSNR", PeakSignalNoiseRatio()))
+    return metrics
 
 
 def pearson_metric(predicted_pdf, target_pdf):

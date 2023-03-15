@@ -6,7 +6,7 @@ from utils.metrics import rwp_metric, mse_metric, pearson_metric
 
 
 class DiffusionWrapper(pl.LightningModule):
-    def __init__(self, denoising_fn, diffusion_model, lr, posttransform):
+    def __init__(self, denoising_fn, diffusion_model, lr, posttransform, metrics):
         """
         Wrapper for the diffusion model for training with pytorch lightning
         """
@@ -16,6 +16,7 @@ class DiffusionWrapper(pl.LightningModule):
         self.posttransform = posttransform
         self.lr = lr
         self.tensors_to_diffuse = diffusion_model.tensors_to_diffuse
+        self.metrics = metrics
 
     def forward(self, x):
         return self.denoising_fn(x)
@@ -27,8 +28,14 @@ class DiffusionWrapper(pl.LightningModule):
         prediction = self.denoising_fn(noisy_batch, t)
         loss = torch.tensor(0.0)
         for i, name in enumerate(self.tensors_to_diffuse):
-            loss += self.diffusion_model.loss(prediction[name], noise[i], batch)
+            pred = prediction[name]
+            noise_i = noise[i]
+            loss += self.diffusion_model.loss(pred, noise_i, batch)
+            for metric_name, metric_fn in self.metrics:
+                self.log(f"{i}: {metric_name}", metric_fn(pred, noise_i), prog_bar=True)
+
         self.log("loss", loss)
+
         return loss
 
     def validation_step(self, batch, batch_idx):

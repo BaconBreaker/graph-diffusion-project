@@ -71,6 +71,10 @@ def parse_args():
     # ## Callbacks ##
     parser.add_argument("--disable_carbon_tracker", action="store_true",
                         help="Whether to disable the carbon tracker callback")
+    
+    # ## Metrics ##
+    parser.add_argument('--metrics', type=str, nargs='+', default=[],
+                        help='Metrics during training, options are [mse, psnr, snr]')
 
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)

@@ -60,19 +60,18 @@ class EquivariantNetwork(nn.Module):
         self.features_out = 1  # Atom species (1)
         self.pad_length = args.pad_length
         self.T = args.diffusion_timesteps
-        self.hidden_dim = 32  # TODO: make this a parameter
+        self.hidden_dim = 192  # TODO: make this a parameter
 
         self.emb_in = nn.Linear(self.features_in, self.hidden_dim)
         self.emb_out = nn.Linear(self.hidden_dim, self.features_out)
-        self.x_out = nn.Linear(3, 3)  # To allow some rescaling of the positions
-        
+
         self.pdf_emb = nn.Linear(3000, 10)
-        
+
         self.time_emb = GammaNetwork()
 
         layers = []
-        for _ in range(4):  # TODO: make this a parameter
-            layers.append(EGCLayer(self.hidden_dim))
+        for _ in range(16):  # TODO: make this a parameter
+            layers.append(EGCLayer(self.hidden_dim, self.pad_length))
         self.layers = nn.Sequential(*layers)
 
     def pos_encoding(self, t):
@@ -104,7 +103,7 @@ class EquivariantNetwork(nn.Module):
         x = xh[:, :, :3]
         x0 = x.clone()
 
-        # Normalize to 0-1
+        # Normalize to 0-1 and unsqueeze to (batch_size, 1)
         t = (t / self.T).unsqueeze(-1)
 
         # Embedding
@@ -114,11 +113,10 @@ class EquivariantNetwork(nn.Module):
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         h = torch.cat([h, t_emb, pdf_emb], dim=-1)
         h = self.emb_in(h)
-        for layer in self.layers:
+        for i, layer in enumerate(self.layers):
             x, h = layer(x, h, x0)
 
         h = self.emb_out(h)
-        x = self.x_out(x)
         x = x - x0
 
         batch['xyz_atom_species'] = torch.cat((x, h), dim=-1)
@@ -127,15 +125,15 @@ class EquivariantNetwork(nn.Module):
 
 
 class EGCLayer(nn.Module):
-    def __init__(self, n_cat_features):
+    def __init__(self, n_cat_features, pad_length):
         """
         EGNN layer as described in appendix B of https://arxiv.org/pdf/2203.17003v2.pdf
         """
         super().__init__()
         self.silu = nn.SiLU()
         self.sigmoid = nn.Sigmoid()
-        self.lnh = nn.LayerNorm([n_cat_features])
-        self.lnx = nn.LayerNorm([3])
+        self.lnh = nn.LayerNorm([pad_length, n_cat_features])
+        self.lnx = nn.LayerNorm([pad_length, 3])
 
         # Edge operation
         # Input = concat([hi, hj, distance from xi to x2j, distance from xi_0 to xj_0])
@@ -212,12 +210,12 @@ class EGCLayer(nn.Module):
         e_matrix =  e_matrix * (1 - diag)  # Remove self-edges
 
         # Node update
-        h_next = self.node_update(h, torch.sum(e_matrix * m_matrix, dim=-2))
+        h_next = self.node_update(h, torch.mean(e_matrix * m_matrix, dim=-2))
 
         # Coordinate update
         cor_weight = self.coordinate_update(h_cart, distances_squarred, org_distances)
         cor_shift = differences / (distances + 1)
-        cor_update = torch.sum(cor_weight * cor_shift, dim=-2)
+        cor_update = torch.mean(cor_weight * cor_shift, dim=-2)
         x_next = x + cor_update
 
         return x_next, h_next
