@@ -98,7 +98,13 @@ class EquivariantNetwork(nn.Module):
         """
         xh = batch['xyz_atom_species']
         pdf = batch['pdf']
+        pad_mask = batch['pad_mask']
+        
+        # Flip padding values so 1 means no padding and 0 means padding
+        # Also unsqueeze to (batch_size, pad_length, 1) and convert to float
+        pad_mask = (~pad_mask).unsqueeze(-1).float()
 
+        # Extract positions (x) and atom species (h)
         h = xh[:, :, 3].unsqueeze(-1)
         x = xh[:, :, :3]
         x0 = x.clone()
@@ -106,55 +112,64 @@ class EquivariantNetwork(nn.Module):
         # Normalize to 0-1 and unsqueeze to (batch_size, 1)
         t = (t / self.T).unsqueeze(-1)
 
-        # Embedding
+        # Embedding in
         t_emb = self.time_emb(t)
         pdf_emb = self.pdf_emb(pdf)
         t_emb = t_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         h = torch.cat([h, t_emb, pdf_emb], dim=-1)
         h = self.emb_in(h)
-        for i, layer in enumerate(self.layers):
-            x, h = layer(x, h, x0)
+        
+        # Loop over layers
+        for layer in self.layers:
+            x, h = layer(x, h, x0, pad_mask)
 
+        # Embedding out
         h = self.emb_out(h)
+        
+        # Rescale to center of gravity
         x = x - x0
+        
+        # Re-pad values before returning
+        if pad_mask is not None:
+            x = x * pad_mask
+            h = h * pad_mask
 
         batch['xyz_atom_species'] = torch.cat((x, h), dim=-1)
-
         return batch
 
 
 class EGCLayer(nn.Module):
-    def __init__(self, n_cat_features, pad_length):
+    def __init__(self, hidden_dim, pad_length):
         """
         EGNN layer as described in appendix B of https://arxiv.org/pdf/2203.17003v2.pdf
         """
         super().__init__()
         self.silu = nn.SiLU()
         self.sigmoid = nn.Sigmoid()
-        self.lnh = nn.LayerNorm([pad_length, n_cat_features])
+        self.lnh = nn.LayerNorm([pad_length, hidden_dim])
         self.lnx = nn.LayerNorm([pad_length, 3])
 
         # Edge operation
         # Input = concat([hi, hj, distance from xi to x2j, distance from xi_0 to xj_0])
         # Output m_ij
-        self.edg1 = nn.Linear(n_cat_features * 2 + 2, n_cat_features)
-        self.edg2 = nn.Linear(n_cat_features, n_cat_features)
+        self.edg1 = nn.Linear(hidden_dim * 2 + 2, hidden_dim)
+        self.edg2 = nn.Linear(hidden_dim, hidden_dim)
 
         # Edge inferrence
         # Input = m_ij
         # Output = e_ij
-        self.edgi = nn.Linear(n_cat_features, 1)
+        self.edgi = nn.Linear(hidden_dim, 1)
 
         # Node feature update
         # Input = concat([hi, aggregated_j m_ij])
-        self.node1 = nn.Linear(n_cat_features * 2, n_cat_features)
-        self.node2 = nn.Linear(n_cat_features, n_cat_features)
+        self.node1 = nn.Linear(hidden_dim * 2, hidden_dim)
+        self.node2 = nn.Linear(hidden_dim, hidden_dim)
         
         # Node coordinate update
-        self.cor1 = nn.Linear(n_cat_features * 2 + 2, n_cat_features)
-        self.cor2 = nn.Linear(n_cat_features, n_cat_features)
-        self.cor3 = nn.Linear(n_cat_features, 1)
+        self.cor1 = nn.Linear(hidden_dim * 2 + 2, hidden_dim)
+        self.cor2 = nn.Linear(hidden_dim, hidden_dim)
+        self.cor3 = nn.Linear(hidden_dim, 1)
 
     def edge_operation(self, h1h2, r, r0):
         inp = torch.cat([h1h2, r, r0], dim=-1)
@@ -180,15 +195,20 @@ class EGCLayer(nn.Module):
         inp = self.cor3(inp)
         return inp
 
-    def forward(self, x, h, x0):
+    def forward(self, x, h, x0, pad_mask=None):
         """
         forward pass of the layer
         args:
             x: (batch_size, pad_length, 3) tensor containing the coordinates
-            h: (batch_size, pad_length, n_cat_features) tensor containing the node features
+            h: (batch_size, pad_length, hidden_dim) tensor containing the node features
             x0: (batch_size, pad_length, 3) tensor containing the initial coordinates
+            pad_mask: (batch_size, pad_length, 1) tensor containing a mask for the padding
+        returns:
+            x_next: (batch_size, pad_length, 3) tensor containing the coordinates
+            h_next: (batch_size, pad_length, hidden_dim) tensor containing the node features
         """
-        org_distances = torch.norm(x0[:, :, None, :] - x0[:, None, :, :], dim=-1).unsqueeze(-1)      
+        org_distances = torch.norm(x0[:, :, None, :] - x0[:, None, :, :], dim=-1).unsqueeze(-1)
+        org_distances_squarred = org_distances ** 2
         differences = (x[:, :, None, :] - x[:, None, :, :])
         distances = torch.norm(differences, dim=-1).unsqueeze(-1)
         distances_squarred = distances ** 2
@@ -202,25 +222,33 @@ class EGCLayer(nn.Module):
         h_cart = h[:, idx_pairs_cart].view(h.shape[0], h.shape[1], h.shape[1], -1)
 
         # Edge operation
-        m_matrix = self.edge_operation(h_cart, distances_squarred, org_distances)
+        m_matrix = self.edge_operation(h_cart, distances_squarred, org_distances_squarred)
 
         # Edge inference
         e_matrix = self.edge_inference(m_matrix)
         diag = torch.eye(e_matrix.shape[1], e_matrix.shape[2]).unsqueeze(0).unsqueeze(-1)
-        e_matrix =  e_matrix * (1 - diag)  # Remove self-edges
+        e_matrix =  e_matrix * (1 - diag)  # Remove where i == j
 
         # Node update
         h_next = self.node_update(h, torch.mean(e_matrix * m_matrix, dim=-2))
 
         # Coordinate update
-        cor_weight = self.coordinate_update(h_cart, distances_squarred, org_distances)
+        cor_weight = self.coordinate_update(h_cart, distances_squarred, org_distances_squarred)
         cor_shift = differences / (distances + 1)
-        cor_update = torch.mean(cor_weight * cor_shift, dim=-2)
+        cor_shift_weighted = cor_weight * cor_shift
+        cor_shift_weighted = cor_shift_weighted * (1 - diag)  # Remove where i == j
+        cor_update = torch.mean(cor_shift_weighted, dim=-2)
         x_next = x + cor_update
+
+        # Apply pad mask
+        if pad_mask is not None:
+            x_next = x_next * pad_mask
+            h_next = h_next * pad_mask
 
         return x_next, h_next
 
 
+# Copied from the their github
 class GammaNetwork(torch.nn.Module):
     """The gamma network models a monotonic increasing function. Construction as in the VDM paper."""
     def __init__(self):
@@ -259,6 +287,8 @@ class GammaNetwork(torch.nn.Module):
 
         return gamma
 
+
+# Copied from the their github
 class PositiveLinear(torch.nn.Module):
     """Linear layer with weights forced to be positive."""
 

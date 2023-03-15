@@ -120,4 +120,8 @@ class GaussianDiffusion(Diffusion):
 
     def loss(self,  prediction, noise, _batch):
         """Computes the loss for the diffusion process."""
-        return f.mse_loss(prediction, noise)
+        loss_logits = f.mse_loss(prediction, noise, reduction="none")
+        pad_mask = _batch["pad_mask"]
+        pad_mask = ~pad_mask  # Flip so 1 is for non-pad values
+        loss_logits_masked = loss_logits[pad_mask]
+        return loss_logits_masked.mean()
