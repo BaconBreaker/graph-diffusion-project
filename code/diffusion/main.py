@@ -76,6 +76,12 @@ def parse_args():
     parser.add_argument('--metrics', type=str, nargs='+', default=[],
                         help='Metrics during training, options are [mse, psnr, snr]')
 
+    # ## Equivariant diffusion parameters ##
+    parser.add_argument("--equiv_n_layers", type=int, default=16,
+                        help="Number of layers in the equivariant diffusion model")
+    parser.add_argument("--equiv_hidden_dim", type=int, default=192,
+                        help="Hidden dimension of the equivariant diffusion model")
+
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)
 

@@ -60,17 +60,29 @@ class EquivariantNetwork(nn.Module):
         self.features_out = 1  # Atom species (1)
         self.pad_length = args.pad_length
         self.T = args.diffusion_timesteps
-        self.hidden_dim = 192  # TODO: make this a parameter
+        self.hidden_dim = args.equiv_hidden_dim
+        self.n_layers = args.equiv_n_layers
 
-        self.emb_in = nn.Linear(self.features_in, self.hidden_dim)
-        self.emb_out = nn.Linear(self.hidden_dim, self.features_out)
+        self.emb_in = nn.Sequential(
+            nn.Linear(self.features_in, self.hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(self.hidden_dim // 2, self.hidden_dim)
+        )
+
+        self.emb_out = nn.Sequential(
+            nn.Linear(self.hidden_dim, self.hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(self.hidden_dim // 2, self.features_out)
+        )
 
         self.pdf_emb = nn.Linear(3000, 10)
 
         self.time_emb = GammaNetwork()
 
         layers = []
-        for _ in range(16):  # TODO: make this a parameter
+        for _ in range(self.n_layers):
             layers.append(EGCLayer(self.hidden_dim, self.pad_length))
         self.layers = nn.Sequential(*layers)
 
@@ -99,7 +111,7 @@ class EquivariantNetwork(nn.Module):
         xh = batch['xyz_atom_species']
         pdf = batch['pdf']
         pad_mask = batch['pad_mask']
-        
+
         # Flip padding values so 1 means no padding and 0 means padding
         # Also unsqueeze to (batch_size, pad_length, 1) and convert to float
         pad_mask = (~pad_mask).unsqueeze(-1).float()
@@ -119,17 +131,17 @@ class EquivariantNetwork(nn.Module):
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         h = torch.cat([h, t_emb, pdf_emb], dim=-1)
         h = self.emb_in(h)
-        
+
         # Loop over layers
         for layer in self.layers:
             x, h = layer(x, h, x0, pad_mask)
 
         # Embedding out
         h = self.emb_out(h)
-        
+
         # Rescale to center of gravity
         x = x - x0
-        
+
         # Re-pad values before returning
         if pad_mask is not None:
             x = x * pad_mask
@@ -137,6 +149,23 @@ class EquivariantNetwork(nn.Module):
 
         batch['xyz_atom_species'] = torch.cat((x, h), dim=-1)
         return batch
+    
+    def pad_noise(self, noise, batch_dict):
+        """
+        Pads the noise to the correct length
+        Sets the noise for the padding to 0
+        args:
+            noise: (batch_size, pad_length, 4) tensor containing the noise
+            batch_dict: batch dictionary containing:
+                pad_mask: (batch_size, pad_length) tensor containing a mask for the padding
+        returns:
+            noise: (batch_size, pad_length, 4) tensor containing the padded noise
+        """
+        pad_mask = batch_dict['pad_mask']
+        pad_mask = pad_mask.unsqueeze(-1).repeat(1, 1, 4)  # (batch_size, pad_length, 4)
+        noise[pad_mask] = 0.0
+
+        return noise
 
 
 class EGCLayer(nn.Module):

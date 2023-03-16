@@ -30,6 +30,11 @@ class DiffusionWrapper(pl.LightningModule):
         for i, name in enumerate(self.tensors_to_diffuse):
             pred = prediction[name]
             noise_i = noise[i]
+
+            # Check if tthe noise should be padded
+            if hasattr(self.denoising_fn, "pad_noise"):
+                noise_i = self.denoising_fn.pad_noise(noise_i, batch)
+            
             loss += self.diffusion_model.loss(pred, noise_i, batch)
             for metric_name, metric_fn in self.metrics:
                 self.log(f"{i}: {metric_name}", metric_fn(pred, noise_i), prog_bar=True)
