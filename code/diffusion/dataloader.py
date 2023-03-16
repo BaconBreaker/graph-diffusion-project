@@ -13,7 +13,7 @@ from sklearn.model_selection import train_test_split
 import glob
 
 from utils.data import load_structure, pad_array, make_adjecency_matrix
-
+from utils.graph_transformer_utils import MoleculeDatasetInfo
 
 class MoleculeDataset(Dataset):
     def __init__(self, sample_list, pad_length, transform=None):
@@ -89,6 +89,10 @@ class MoleculeDataModule(pl.LightningDataModule):
 
         self.pad_length = args.pad_length
         self.transform = transform
+
+        self.molecule_info = MoleculeDatasetInfo(n_nodes=args.pad_length,
+                                                 node_types=7,
+                                                 edge_types=2)
 
     def prepare_data(self):
         """
