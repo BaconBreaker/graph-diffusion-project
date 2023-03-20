@@ -20,12 +20,14 @@ def save_graph(batch_dict, t, run_name, post_process):
             os.makedirs(folder_path)
 
         g = nx.from_numpy_array(adjacency_matrix)
-        fig = plt.figure()
+        fig = plt.figure(figsize=(6, 6))
         nx.draw(g, ax=fig.add_subplot())
+        plt.title("graph at timestep " + str(t))
         fig.savefig(img_path, transparent=False, facecolor="white")
+        plt.close(fig)
 
 
-def save_gif(run_name, total_t, batch_size, fps=10):
+def save_gif(run_name, total_t, batch_size, fps=3):
     frames = []
     folder_path = os.path.join("plots", run_name)
     for n in range(batch_size):
