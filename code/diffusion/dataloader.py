@@ -91,8 +91,8 @@ class MoleculeDataModule(pl.LightningDataModule):
         self.transform = transform
 
         self.molecule_info = MoleculeDatasetInfo(n_nodes=args.pad_length,
-                                                 node_types=7,
-                                                 edge_types=2)
+                                                 n_node_types=2,
+                                                 n_edge_types=30)
 
     def prepare_data(self):
         """

@@ -7,7 +7,7 @@ import torch.nn.functional as f
 
 from diffusion_modules.BaseDiffusion import Diffusion
 from utils.stuff import unsqueeze_n
-from utils.plots import save_graph
+from utils.plots import save_graph, save_gif
 
 
 def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
@@ -86,6 +86,7 @@ class GaussianDiffusion(Diffusion):
             # Make a copy of the batch_dict, and replace the tensors to diffuse with noise.
             # This ensures that vectors used for conditioning are not modified.
             sample_dict = batch_dict.copy()
+            batch_size = sample_dict[self.tensors_to_diffuse[0]].size(0)
             for name in self.tensors_to_diffuse:
                 noise_shape = batch_dict[name].shape
                 x = self.sample_from_noise_fn(noise_shape)
@@ -99,12 +100,16 @@ class GaussianDiffusion(Diffusion):
                                                      save_output=save_output,
                                                      post_process=post_process)
 
+        if save_output and post_process is not None:
+            save_gif(self.run_name, self.noise_steps, batch_size, fps=10)
+
         model.train()
 
         return sample_dict
 
     def sample_previous_x(self, sample_dict, i, model,
                           save_output=False, post_process=None):
+        """Given i, sample x_{i-1}"""
         n = sample_dict[self.tensors_to_diffuse[0]].size(0)
         t = (torch.ones(n) * i).long()
         prediction = model(sample_dict, t)

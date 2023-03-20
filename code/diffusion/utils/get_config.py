@@ -6,11 +6,18 @@ Functions to get the model given args
 
 from diffusion_modules.GaussianDiffusion import GaussianDiffusion
 from diffusion_modules.UniformCategoricalDiffusion import UniformCategoricalDiffusion
-from networks.SelfAttentionNetwork import (SelfAttentionNetwork,
-    self_attention_posttransform, self_attention_pretransform)
+from networks.SelfAttentionNetwork import (
+    SelfAttentionNetwork,
+    self_attention_posttransform,
+    self_attention_pretransform
+)
 from networks.ConditionalUNet import ConditionalUNet
-from networks.EquivariantNetwork import (EquivariantNetwork,
-    equivariant_posttransform, equivariant_pretransform)
+from networks.EquivariantNetwork import (
+    EquivariantNetwork,
+    equivariant_posttransform,
+    equivariant_pretransform
+)
+from networks.DiGress import digress_pretransform
 
 
 def get_model(args):
@@ -33,6 +40,10 @@ def get_model(args):
         model = EquivariantNetwork(args)
         pretransform = equivariant_pretransform
         posttransform = equivariant_posttransform
+    elif args.model == "digress":
+        model = None
+        pretransform = digress_pretransform
+        posttransform = None
     else:
         raise ValueError(f"Model {args.model} not implemented")
     return model, pretransform, posttransform
