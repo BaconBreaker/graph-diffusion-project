@@ -71,6 +71,9 @@ def parse_args():
     # ## Callbacks ##
     parser.add_argument("--disable_carbon_tracker", action="store_true",
                         help="Whether to disable the carbon tracker callback")
+    parser.add_argument("--checkpoint", action="store_true",
+                        help="Whether to enable the checkpoint callback",
+                        default=True)
 
     # ## Metrics ##
     parser.add_argument('--metrics', type=str, nargs='+', default=[],
@@ -105,5 +108,5 @@ def check_args(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    args = check_args(args)
+    logger.log(logging.INFO, f"Arguments:\n{vars(args)}")
     train(args)
