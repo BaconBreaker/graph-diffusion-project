@@ -13,7 +13,7 @@
 #Skipping many options! see man sbatch
 # From here on, we can start our program
 # python --version > echo
-echo $CUDA_VISIBLE_DEVICES
+echo "$CUDA_VISIBLE_DEVICES"
 
 echo "Conditional UNET experiment:"
 
