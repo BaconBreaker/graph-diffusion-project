@@ -5,10 +5,14 @@ import torch
 
 from utils.noise_schedule import linear_noise_schedule, cosine_noise_schedule
 
+
 class Diffusion(ABC):
     def __init__(self, args, **d_kwargs):
         self.noise_steps = args.diffusion_timesteps
         noise_schedule = args.noise_schedule
+        self.run_name = args.run_name
+        self.device = args.device
+        self.conditional = args.conditional
 
         if noise_schedule == "linear":
             self.noise_schedule = linear_noise_schedule

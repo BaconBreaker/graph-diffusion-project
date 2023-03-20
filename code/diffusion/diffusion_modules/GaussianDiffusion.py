@@ -1,3 +1,5 @@
+from os import path
+
 import torch
 from tqdm.auto import tqdm
 
@@ -5,6 +7,7 @@ import torch.nn.functional as f
 
 from diffusion_modules.BaseDiffusion import Diffusion
 from utils.stuff import unsqueeze_n
+from utils.plots import save_graph, save_gif
 
 
 def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
@@ -73,7 +76,7 @@ class GaussianDiffusion(Diffusion):
 
         return x_t, epsilon
 
-    def sample(self, model, batch_dict):
+    def sample(self, model, batch_dict, save_output=False, post_process=None):
         """Sample n examples from the model, with optional labels for conditional sampling.
         The `labels` argument is ignored if the model is not conditional.
         """
@@ -83,18 +86,30 @@ class GaussianDiffusion(Diffusion):
             # Make a copy of the batch_dict, and replace the tensors to diffuse with noise.
             # This ensures that vectors used for conditioning are not modified.
             sample_dict = batch_dict.copy()
+            batch_size = sample_dict[self.tensors_to_diffuse[0]].size(0)
             for name in self.tensors_to_diffuse:
                 noise_shape = batch_dict[name].shape
                 x = self.sample_from_noise_fn(noise_shape)
                 sample_dict[name] = x
 
+            if save_output and post_process is not None:
+                save_graph(sample_dict, self.noise_steps, self.run_name, post_process)
+
             for i in tqdm(reversed(range(1, self.noise_steps)), position=0):
-                x = self.sample_previous_x(sample_dict, i, model)
+                sample_dict = self.sample_previous_x(sample_dict, i, model,
+                                                     save_output=save_output,
+                                                     post_process=post_process)
+
+        if save_output and post_process is not None:
+            save_gif(self.run_name, self.noise_steps, batch_size, fps=10)
+
         model.train()
 
         return sample_dict
 
-    def sample_previous_x(self, sample_dict, i, model):
+    def sample_previous_x(self, sample_dict, i, model,
+                          save_output=False, post_process=None):
+        """Given i, sample x_{i-1}"""
         n = sample_dict[self.tensors_to_diffuse[0]].size(0)
         t = (torch.ones(n) * i).long()
         prediction = model(sample_dict, t)
@@ -114,7 +129,11 @@ class GaussianDiffusion(Diffusion):
                 x = x_t_sub_from_noise(alpha, alpha_hat, beta, noise, pred, x)
             else:
                 x = x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, beta, noise, pred, x)
+
             sample_dict[name] = x
+
+            if save_output and post_process is not None:
+                save_graph(sample_dict, i, self.run_name, post_process)
 
         return sample_dict
 

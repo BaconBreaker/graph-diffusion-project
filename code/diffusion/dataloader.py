@@ -14,7 +14,7 @@ from scipy.spatial.distance import pdist
 import glob
 
 from utils.data import load_structure, pad_array, make_adjecency_matrix
-
+from utils.graph_transformer_utils import MoleculeDatasetInfo
 
 class MoleculeDataset(Dataset):
     def __init__(self, sample_list, pad_length, transform=None):
@@ -91,6 +91,10 @@ class MoleculeDataModule(pl.LightningDataModule):
 
         self.pad_length = args.pad_length
         self.transform = transform
+
+        self.molecule_info = MoleculeDatasetInfo(n_nodes=args.pad_length,
+                                                 n_node_types=2,
+                                                 n_edge_types=30)
 
     def prepare_data(self):
         """

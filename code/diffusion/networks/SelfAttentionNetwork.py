@@ -76,7 +76,9 @@ def self_attention_posttransform(batch_dict):
     upper_index = upper_index[:,upper_index[0] != upper_index[1]]
     adj_matrix[:, upper_index[0], upper_index[1]] = edge_seq
     adj_matrix[:, upper_index[1], upper_index[0]] = edge_seq
-    
+
+
+
     atom_species = batch_dict['node_features'][:, :, 0]
 
     return adj_matrix, atom_species, r, pdf, pad_mask

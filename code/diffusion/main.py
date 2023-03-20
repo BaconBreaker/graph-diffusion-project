@@ -55,7 +55,7 @@ def parse_args():
     parser.add_argument("--model_target", type=str, default="noise",
                         help="Target of the model, options: noise, image")
     parser.add_argument("--n_categorical_vars", type=int, default=3,
-                        help="Nubme of categorical variables. Only for uniform categorical noise")
+                        help="Number of categorical variables. Only for uniform categorical noise")
     parser.add_argument("--n_values", type=int, default=7,
                         help="Number of values each categorical variable can take. \
                             Only for uniform categorical noise")
@@ -71,7 +71,7 @@ def parse_args():
     # ## Callbacks ##
     parser.add_argument("--disable_carbon_tracker", action="store_true",
                         help="Whether to disable the carbon tracker callback")
-    
+
     # ## Metrics ##
     parser.add_argument('--metrics', type=str, nargs='+', default=[],
                         help='Metrics during training, options are [mse, psnr, snr]')
@@ -81,6 +81,10 @@ def parse_args():
                         help="Number of layers in the equivariant diffusion model")
     parser.add_argument("--equiv_hidden_dim", type=int, default=192,
                         help="Hidden dimension of the equivariant diffusion model")
+
+    # ## Conditional diffusion parameters ##
+    parser.add_argument("--conditional", action="store_true",
+                        help="Whether to train a conditional model")
 
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)

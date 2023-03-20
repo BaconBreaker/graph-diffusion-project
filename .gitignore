@@ -6,3 +6,4 @@ code/diffusion/models
 code/diffusion/results
 code/diffusion/runs
 lightning_logs
+code/diffusion/plots/*
