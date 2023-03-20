@@ -9,6 +9,7 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from sklearn.model_selection import train_test_split
+from scipy.spatial.distance import pdist
 
 import glob
 
@@ -53,11 +54,12 @@ class MoleculeDataset(Dataset):
         
         xyz = node_features[:, 4:7]
         adj_matrix = torch.zeros((self.pad_length, self.pad_length))
-        distances = torch.cdist(xyz, xyz)
-        # Set the entries of the adjecency matrix to the entries of the distance matrix
-        adj_matrix[:node_features.shape[0], :node_features.shape[0]] = distances
+        tri_cor = torch.triu_indices(node_features.shape[0], node_features.shape[0], offset=1)
+        distances = pdist(xyz, metric='euclidean')
 
-        # adj_matrix = make_adjecency_matrix(edge_indices, edge_features, self.pad_length)
+        # Set the entries of the adjecency matrix to the entries of the distance matrix
+        adj_matrix[tri_cor[0], tri_cor[1]] = distances
+        adj_matrix[tri_cor[1], tri_cor[0]] = distances
 
         sample_dict = {
             'adj_matrix': adj_matrix,
