@@ -1,4 +1,4 @@
-import torch_geometric.utils
+from torch_geometric import utils
 from torch_geometric.utils import to_dense_adj, to_dense_batch
 import torch
 
@@ -52,7 +52,7 @@ def encode_no_edge(E):
 def to_dense(x, edge_index, edge_attr, batch):
     X, node_mask = to_dense_batch(x=x, batch=batch)
     # node_mask = node_mask.float()
-    edge_index, edge_attr = torch_geometric.utils.remove_self_loops(
+    edge_index, edge_attr = utils.remove_self_loops(
         edge_index, edge_attr
     )
     # TODO: carefully check if setting node_mask as a bool 
@@ -68,18 +68,25 @@ def to_dense(x, edge_index, edge_attr, batch):
 
 
 class AbstractDatasetInfos:
-    def complete_infos(self, n_nodes, node_types):
+    def complete_infos(self, n_nodes, n_node_types):
         self.input_dims = None
         self.output_dims = None
-        self.num_classes = len(node_types)
+        self.num_classes = n_node_types
         self.max_n_nodes = n_nodes - 1
-        self.nodes_dist = DistributionNodes(n_nodes)
 
-    def compute_input_output_dims(self, datamodule, extra_features, domain_features):
+    def compute_input_output_dims(self,
+                                  datamodule,
+                                  extra_features,
+                                  domain_features):
         example_batch = next(iter(datamodule.train_dataloader()))
-        ex_dense, node_mask = utils.to_dense(example_batch.x, example_batch.edge_index, example_batch.edge_attr,
+        ex_dense, node_mask = utils.to_dense(example_batch.x,
+                                             example_batch.edge_index, 
+                                             example_batch.edge_attr,
                                              example_batch.batch)
-        example_data = {'X_t': ex_dense.X, 'E_t': ex_dense.E, 'y_t': example_batch['y'], 'node_mask': node_mask}
+        example_data = {'X_t': ex_dense.X,
+                        'E_t': ex_dense.E,
+                        'y_t': example_batch['y'],
+                        'node_mask': node_mask}
 
         self.input_dims = {'X': example_batch['x'].size(1),
                            'E': example_batch['edge_attr'].size(1),
@@ -104,5 +111,5 @@ class MoleculeDatasetInfo(AbstractDatasetInfos):
         self.n_nodes = n_nodes
         self.n_node_types = n_node_types
         self.n_edge_types = n_edge_types
-        n_nodes_tensor = torch.arange(n_nodes)
-        self.complete_infos(n_nodes, node_types)
+        # n_nodes_tensor = torch.arange(n_nodes)
+        self.complete_infos(n_nodes, n_node_types)
