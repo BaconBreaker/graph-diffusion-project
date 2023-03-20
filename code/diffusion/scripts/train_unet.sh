@@ -12,9 +12,14 @@
 #SBATCH --time=8:00:00
 #Skipping many options! see man sbatch
 # From here on, we can start our program
-python --version > echo
+echo "Python version:"
+python --version
+
+echo "CUDA visible devices:"
 echo "$CUDA_VISIBLE_DEVICES"
-nvcc --version > echo
+
+echo "CUDA version:"
+nvcc --version
 
 echo "Conditional UNET experiment:"
 
