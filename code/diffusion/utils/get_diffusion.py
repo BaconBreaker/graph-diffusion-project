@@ -1,5 +1,5 @@
-from ..diffusion_modules.GaussianDiffusion import GaussianDiffusion
-from ..diffusion_modules.UniformCategoricalDiffusion import UniformCategoricalDiffusion
+from diffusion_modules.GaussianDiffusion import GaussianDiffusion
+from diffusion_modules.UniformCategoricalDiffusion import UniformCategoricalDiffusion
 
 
 def get_diffusion(args):

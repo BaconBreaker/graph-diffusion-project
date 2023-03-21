@@ -17,7 +17,7 @@ from networks.EquivariantNetwork import (
     equivariant_posttransform,
     equivariant_pretransform
 )
-from networks.DiGress import digress_pretransform
+# from networks.DiGress import digress_pretransform
 
 
 def get_model(args):
@@ -40,10 +40,10 @@ def get_model(args):
         model = EquivariantNetwork(args)
         pretransform = equivariant_pretransform
         posttransform = equivariant_posttransform
-    elif args.model == "digress":
-        model = None
-        pretransform = digress_pretransform
-        posttransform = None
+    # elif args.model == "digress":
+    #     model = None
+    #     pretransform = digress_pretransform
+    #     posttransform = None
     else:
         raise ValueError(f"Model {args.model} not implemented")
     return model, pretransform, posttransform
