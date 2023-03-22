@@ -177,7 +177,6 @@ class EGCLayer(nn.Module):
         self.silu = nn.SiLU()
         self.sigmoid = nn.Sigmoid()
         self.lnh = nn.LayerNorm([pad_length, hidden_dim])
-        self.lnx = nn.LayerNorm([pad_length, 3])
 
         # Edge operation
         # Input = concat([hi, hj, distance from xi to x2j, distance from xi_0 to xj_0])
@@ -244,7 +243,6 @@ class EGCLayer(nn.Module):
         
         # Layer norm on node features
         h = self.lnh(h)
-        x = self.lnx(x)
 
         # Cartesian product of all nodes
         idx_pairs_cart = torch.cartesian_prod(torch.arange(h.shape[1]), torch.arange(h.shape[1]))

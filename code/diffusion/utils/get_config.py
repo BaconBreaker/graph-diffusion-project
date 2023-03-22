@@ -17,8 +17,12 @@ from networks.EquivariantNetwork import (
     equivariant_posttransform,
     equivariant_pretransform
 )
-from networks.DiGress import digress_pretransform
-
+# from networks.DiGress import digress_pretransform
+from networks.EdgeAugmentedTransformer import (
+    EdgeAugmentedGraphTransformer,
+    EAGTPretransform,
+    EAGTPosttransform
+)
 
 def get_model(args):
     """
@@ -44,6 +48,10 @@ def get_model(args):
         model = None
         pretransform = digress_pretransform
         posttransform = None
+    elif args.model == "eagt":
+        model = EdgeAugmentedGraphTransformer(args)
+        pretransform = EAGTPretransform
+        posttransform = EAGTPosttransform
     else:
         raise ValueError(f"Model {args.model} not implemented")
     return model, pretransform, posttransform

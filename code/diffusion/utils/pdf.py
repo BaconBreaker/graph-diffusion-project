@@ -93,6 +93,12 @@ def calculate_pdf_from_adjecency_matrix(adj_matrix, atom_species):
     returns:
         pdf (np.array): array of evaluated points of the pdf function of shape (3000,)
     """
+    # Symmetrise adjecency matrix
+    triu_indices = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1], offset=1)
+    diag_indices = torch.arange(0, adj_matrix.shape[0], dtype=torch.long).repeat(2,1)
+    adj_matrix[triu_indices[0], triu_indices[1]] = adj_matrix[triu_indices[1], triu_indices[0]]
+    adj_matrix[diag_indices[0], diag_indices[1]] = 0
+
     point_cloud = multidimensional_scaling(adj_matrix)
     pdf = calculate_pdf(point_cloud, atom_species)
     return pdf

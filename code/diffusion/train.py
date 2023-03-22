@@ -16,7 +16,8 @@ def train(args):
     dataloader = MoleculeDataModule(args=args, transform=pretransform)
     metrics = get_metrics(args)
     diffusion = DiffusionWrapper(denoising_fn=model, diffusion_model=diffusion_model,
-                                 lr=args.lr, posttransform=posttransform, metrics=metrics)
+                                 lr=args.lr, posttransform=posttransform, metrics=metrics,
+                                 sample_interval=args.sample_interval)
     callbacks = get_callbacks(args)
 
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks)

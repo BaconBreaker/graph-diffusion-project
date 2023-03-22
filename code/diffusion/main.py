@@ -71,6 +71,8 @@ def parse_args():
     # ## Callbacks ##
     parser.add_argument("--disable_carbon_tracker", action="store_true",
                         help="Whether to disable the carbon tracker callback")
+    parser.add_argument("--sample_interval", type=int, default=10,
+                        help="Interval of epochs between sampling, set to negative number to disable sampling")
 
     # ## Metrics ##
     parser.add_argument('--metrics', type=str, nargs='+', default=[],

@@ -53,9 +53,9 @@ class MoleculeDataset(Dataset):
         node_features = pad_array(node_features, self.pad_length, 0)
         
         xyz = node_features[:, 4:7]
-        adj_matrix = torch.zeros((self.pad_length, self.pad_length))
+        adj_matrix = torch.zeros((self.pad_length, self.pad_length), dtype=torch.float32)
         tri_cor = torch.triu_indices(node_features.shape[0], node_features.shape[0], offset=1)
-        distances = pdist(xyz, metric='euclidean')
+        distances = torch.tensor(pdist(xyz, metric='euclidean'), dtype=torch.float32)
 
         # Set the entries of the adjecency matrix to the entries of the distance matrix
         adj_matrix[tri_cor[0], tri_cor[1]] = distances
