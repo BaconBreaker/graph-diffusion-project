@@ -1,7 +1,7 @@
 """
 File containing all the callbacks used in the project
 """
-from pytorch_lightning.callbacks import Callback
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from carbontracker.tracker import CarbonTracker
 import os
 
@@ -13,6 +13,9 @@ def get_callbacks(args):
     callbacks = []
     if not args.disable_carbon_tracker:
         callbacks.append(CarbonTrackerCallback(args))
+
+    if args.checkpoint:
+        callbacks.append(get_checkpoint_callback(args))
     return callbacks
 
 
@@ -56,3 +59,15 @@ class CarbonTrackerCallback(Callback):
     def on_fit_end(self, *args, **kwargs):
         self.train_tracker.stop()
         self.val_tracker.stop()
+
+
+def get_checkpoint_callback(args):
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=f"checkpoints/{args.run_name}",
+        filename="{epoch}-{val_loss:.3f}",
+        save_top_k=1,
+        save_last=True,
+        monitor="val_loss",
+        mode="min"
+    )
+    return checkpoint_callback

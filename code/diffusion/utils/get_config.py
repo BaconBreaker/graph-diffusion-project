@@ -24,6 +24,7 @@ from networks.EdgeAugmentedTransformer import (
     EAGTPosttransform
 )
 
+
 def get_model(args):
     """
     Returns the model given the args
@@ -52,6 +53,10 @@ def get_model(args):
         model = EdgeAugmentedGraphTransformer(args)
         pretransform = EAGTPretransform
         posttransform = EAGTPosttransform
+    # elif args.model == "digress":
+    #     model = None
+    #     pretransform = digress_pretransform
+    #     posttransform = None
     else:
         raise ValueError(f"Model {args.model} not implemented")
     return model, pretransform, posttransform

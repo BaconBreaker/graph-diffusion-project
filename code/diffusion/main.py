@@ -73,6 +73,9 @@ def parse_args():
                         help="Whether to disable the carbon tracker callback")
     parser.add_argument("--sample_interval", type=int, default=10,
                         help="Interval of epochs between sampling, set to negative number to disable sampling")
+    parser.add_argument("--checkpoint", action="store_true",
+                        help="Whether to enable the checkpoint callback",
+                        default=True)
 
     # ## Metrics ##
     parser.add_argument('--metrics', type=str, nargs='+', default=[],
@@ -107,5 +110,5 @@ def check_args(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    args = check_args(args)
+    logger.log(logging.INFO, f"Arguments:\n{vars(args)}")
     train(args)
