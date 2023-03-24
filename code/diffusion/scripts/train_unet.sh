@@ -25,4 +25,6 @@ echo "Conditional UNET experiment:"
 
 # python test_slurm.py
 
-python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name 123 --max_epochs 10 --check_val_every_n_epoch 1 --batch_size 16 --tensors_to_diffuse edge_sequence --pad_length 135 --diffusion_timesteps 100 --num_workers 4 --log_every_n_steps 10 --disable_carbon_tracker
+python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name 123 --max_epochs 10 --check_val_every_n_epoch 1 \
+  --batch_size 16 --tensors_to_diffuse edge_sequence --pad_length 135 --diffusion_timesteps 100 --num_workers 4 \
+  --log_every_n_steps 10 --disable_carbon_tracker --accelerator "gpu" --devices 1
