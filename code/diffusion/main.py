@@ -6,7 +6,10 @@ python main.py --dataset_path /home/thomas/graph-diffusion-project/graphs_fixed_
 """
 import argparse
 import logging
+from pprint import pformat
+
 import pytorch_lightning as pl
+
 from train import train
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s %(message)s',
@@ -110,5 +113,5 @@ def check_args(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    logger.log(logging.INFO, f"Arguments:\n{vars(args)}")
+    logger.log(logging.INFO, f"Arguments:\n{pformat(vars(args))}")
     train(args)
