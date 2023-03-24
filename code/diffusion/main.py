@@ -19,7 +19,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     # ## Run parameters ##
-    parser.add_argument("--run_name", type=str, default="DDPM_Unconditional",
+    parser.add_argument("--run_name", type=str,
                         help="Name of the run, used for logging and saving models")
     parser.add_argument("--epochs", type=int, default=1000, help="Number of epochs to train for")
     parser.add_argument("--device", type=str, default="cpu",
