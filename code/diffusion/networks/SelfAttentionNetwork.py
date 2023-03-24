@@ -1,3 +1,9 @@
+"""
+Simple self attention network that operates on adjecency matrix only.
+
+Example run:
+python main.py --dataset_path /home/thomas/graph-diffusion-project/graphs_fixed_num_135/ --run_name 123 --max_epochs 1000 --check_val_every_n_epoch 10 --batch_size 4 --tensors_to_diffuse edge_sequence --pad_length 135 --diffusion_timesteps 3 --num_workers 8 --log_every_n_steps 10
+"""
 import torch
 import torch.nn as nn
 
@@ -27,9 +33,7 @@ def self_attention_pretransform(sample_dict):
     """
     adj_matrix = sample_dict.pop('adj_matrix')
     # Find the upper triangle of the adjacency matrix
-    upper_index = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1])
-    # Remove the diagonal
-    upper_index = upper_index[:,upper_index[0] != upper_index[1]]
+    upper_index = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1], offset=1)
     # Flatten the upper triangle of the adjacency matrix
     edge_sequence = adj_matrix[upper_index[0], upper_index[1]]
 
@@ -77,8 +81,6 @@ def self_attention_posttransform(batch_dict):
     adj_matrix[:, upper_index[0], upper_index[1]] = edge_seq
     adj_matrix[:, upper_index[1], upper_index[0]] = edge_seq
 
-
-
     atom_species = batch_dict['node_features'][:, :, 0]
 
     return adj_matrix, atom_species, r, pdf, pad_mask
@@ -90,26 +92,33 @@ class SelfAttentionNetwork(nn.Module):
         Self attention network.
         """
         super().__init__()
-        self.device = args.device
         self.time_dim = args.time_dim
-        self.channels = 1 + args.time_dim
+        self.conditional = args.conditional
+        self.in_channels = 1  # Edge sequence (1)
+        self.hidden_channels = 64  # TODO: Make this a parameter
+        self.out_channels = 1  # Edge sequence (1)
         self.size = args.pad_length
+        
+        self.lin_in = nn.Linear(self.in_channels, self.hidden_channels)
+        self.lin_out = nn.Linear(self.hidden_channels, 1)
 
-        self.sa1 = EdgeSelfAttention(num_heads=1, channels=self.channels, size=self.size)
-        self.sa2 = EdgeSelfAttention(num_heads=1, channels=self.channels, size=self.size)
-        self.sa3 = EdgeSelfAttention(num_heads=1, channels=self.channels, size=self.size)
-        self.sa4 = EdgeSelfAttention(num_heads=1, channels=self.channels, size=self.size)
+        layers = []
+        for _ in range(10): # TODO: Make this a parameter
+            layers.append(EdgeSelfAttention(num_heads=1, channels=self.hidden_channels,
+                                            size=self.size, time_dim=self.time_dim))
+        self.layers = nn.ModuleList(layers)
 
-        self.out = nn.Linear(self.channels, 1)
-
-    def pos_encoding(self, t, channels):
+    @staticmethod
+    def pos_encoding(t, channels):
         inv_freq = 1.0 / (
             10000
-            ** (torch.arange(0, channels, 2, device=self.device).float() / channels)
+            ** (torch.arange(0, channels, 2).float() / channels)
         )
-        pos_enc_a = torch.sin(t.repeat(1, channels // 2) * inv_freq)
-        pos_enc_b = torch.cos(t.repeat(1, channels // 2) * inv_freq)
-        pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
+        pos_enc_sin = torch.sin(t.repeat(1, channels // 2) * inv_freq)
+        pos_enc_cos = torch.cos(t.repeat(1, channels // 2) * inv_freq)
+        pos_enc = torch.zeros(t.shape[0], channels)
+        pos_enc[:, 0::2] = pos_enc_sin
+        pos_enc[:, 1::2] = pos_enc_cos
         return pos_enc
 
     def forward(self, batch, t):
@@ -126,22 +135,17 @@ class SelfAttentionNetwork(nn.Module):
                     a mask for the flattened upper triangle of the adjacency matrix
             t: (batch_size, 1) tensor containing the time
         """
-        x = batch['edge_sequence'].unsqueeze(1)
+        x = batch['edge_sequence'].unsqueeze(-1)
         mask = batch['pad_mask_sequence']
 
         t = t.unsqueeze(-1).type(torch.float)
         t = self.pos_encoding(t, self.time_dim)
-        t = t[:, :, None].repeat(1, x.shape[-2], x.shape[-1])
-        x = torch.concat([x, t], dim=1)
+        x = self.lin_in(x)
 
-        # X shape: (batch_size, 1 + time_dim, pad_length * (pad_length - 1) / 2)
-        x = x.permute(0, 2, 1) # swap to fit into mha
-        x = self.sa1(x, mask)
-        x = self.sa2(x, mask)
-        x = self.sa3(x, mask)
-        x = self.sa4(x, mask)
+        for layer in self.layers:
+            x = layer(x, t, mask=mask)
 
-        x = self.out(x)
+        x = self.lin_out(x)
         
         batch['edge_sequence'] = x.squeeze(-1)
 
