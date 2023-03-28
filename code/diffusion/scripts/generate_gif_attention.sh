@@ -17,15 +17,15 @@ echo "Generating GIFs"
 echo "Python version:"
 python --version
 
-# echo "CUDA visible devices:"
-# echo "$CUDA_VISIBLE_DEVICES"
+echo "CUDA visible devices:"
+echo "$CUDA_VISIBLE_DEVICES"
 
-# echo "CUDA version:"
-# nvcc --version
+echo "CUDA version:"
+nvcc --version
 
 # --tensors_to_diffuse edge_sequence
 python generate_gif.py --dataset_path ../../graphs_fixed_num_135/ --run_name self_attention_checkpoint \
-	--model self_attention --max_epochs 100 --check_val_every_n_epoch 5 --batch_size 4 \
+	--model self_attention --max_epochs 100 --check_val_every_n_epoch 5 --batch_size 2 \
 	--tensors_to_diffuse edge_sequence --pad_length 135 --diffusion_timesteps 1000 --num_workers 4 \
   --device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
 	--t_skips 10 --checkpoint_path "checkpoints/conditional_unet_dpp_tests/epoch=454-val_loss=124584.906.ckpt"
