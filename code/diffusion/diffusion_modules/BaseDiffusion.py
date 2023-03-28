@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import Callable, Union
 
@@ -13,6 +14,7 @@ class Diffusion(ABC):
         self.run_name = args.run_name
         self.device = args.device
         self.conditional = args.conditional
+        self.d_kwargs = d_kwargs
 
         if noise_schedule == "linear":
             self.noise_schedule = linear_noise_schedule
@@ -21,12 +23,19 @@ class Diffusion(ABC):
         else:
             self.noise_schedule = noise_schedule
 
-        self.alpha, self.alpha_hat, self.beta = self.noise_schedule(
-            T=self.noise_steps, **d_kwargs
-        )
+        self.__create_greeks()
+
+    def set_device(self, device):
+        self.device = device
+        self.__create_greeks()
 
     def sample_time_steps(self, n):
-        return torch.randint(low=1, high=self.noise_steps, size=(n,))
+        return torch.randint(low=1, high=self.noise_steps, size=(n,)).to(self.device)
+
+    def __create_greeks(self):
+        self.alpha, self.alpha_hat, self.beta = self.noise_schedule(
+            T=self.noise_steps, device=self.device, **self.d_kwargs
+        )
 
     @abstractmethod
     def diffuse(self, *args, **kwargs):

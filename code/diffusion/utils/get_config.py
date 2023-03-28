@@ -33,8 +33,10 @@ def get_model(args):
     returns:
         model: torch.nn.Module
     """
+    device = args.device
+
     if args.model == "conditional_unet":
-        model = ConditionalUNet(num_classes=args.num_classes)
+        model = ConditionalUNet(num_classes=args.num_classes, device=args.device)
         pretransform = None
         posttransform = None
     elif args.model == "self_attention":
@@ -45,10 +47,6 @@ def get_model(args):
         model = EquivariantNetwork(args)
         pretransform = equivariant_pretransform
         posttransform = equivariant_posttransform
-    elif args.model == "digress":
-        model = None
-        pretransform = digress_pretransform
-        posttransform = None
     elif args.model == "eagt":
         model = EdgeAugmentedGraphTransformer(args)
         pretransform = EAGTPretransform
@@ -59,6 +57,7 @@ def get_model(args):
     #     posttransform = None
     else:
         raise ValueError(f"Model {args.model} not implemented")
+    model = model.to(device)
     return model, pretransform, posttransform
 
 

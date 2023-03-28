@@ -4,6 +4,7 @@ Main training functionality for the diffusion model.
 @Author Thomas Christensen and Rasmus Pallisgaard
 """
 import logging
+from pprint import pformat
 
 import pytorch_lightning as pl
 from dataloader import MoleculeDataModule
@@ -22,13 +23,16 @@ def train(args):
     logging.info("Dataloader loaded.")
     metrics = get_metrics(args)
     logging.info("Metrics loaded.")
-    diffusion = DiffusionWrapper(denoising_fn=model, diffusion_model=diffusion_model,
-                                 lr=args.lr, posttransform=posttransform, metrics=metrics,
+    diffusion = DiffusionWrapper(denoising_fn=model,
+                                 diffusion_model=diffusion_model, lr=args.lr,
+                                 posttransform=posttransform, metrics=metrics,
                                  sample_interval=args.sample_interval)
     logging.info("Diffusion wrapper created.")
     callbacks = get_callbacks(args)
+    logging.info("Callbacks created.")
 
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks)
     logging.info("Trainer created.")
     logging.info("Beginning training now.")
     trainer.fit(diffusion, dataloader)
+    logging.info("Finished training.")

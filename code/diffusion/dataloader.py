@@ -82,12 +82,14 @@ class MoleculeDataModule(pl.LightningDataModule):
             args: argparse object
         """
         super().__init__()
+        self.model_type = args.model
         self.dataset_path = args.dataset_path
         self.val_split = args.val_split
         self.num_train_samples = args.num_train_samples
         self.num_val_samples = args.num_val_samples
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
+        self.tensors_to_diffuse = args.tensors_to_diffuse
 
         self.pad_length = args.pad_length
         self.transform = transform
@@ -96,10 +98,8 @@ class MoleculeDataModule(pl.LightningDataModule):
                                                  n_node_types=2,
                                                  n_edge_types=30)
 
-    def prepare_data(self):
-        """
-        Prepare data for training and testing, only called once on 1 process
-        """
+
+    def pre_setup(self):
         # Collect sample paths and split them into train and val
         all_sample_paths = glob.glob(self.dataset_path + "/*.h5")
         if len(all_sample_paths) == 0:
@@ -119,10 +119,39 @@ class MoleculeDataModule(pl.LightningDataModule):
         self.train_sample_paths = train_sample_paths[:num_train]
         self.val_sample_paths = val_sample_paths[:num_val]
 
+    # def prepare_data(self):
+    #     """
+    #     Prepare data for training and testing, only called once on 1 process
+    #     """
+    #     # Collect sample paths and split them into train and val
+    #     all_sample_paths = glob.glob(self.dataset_path + "/*.h5")
+    #     if len(all_sample_paths) == 0:
+    #         raise ValueError(f"No samples found in {self.dataset_path}")
+    #     train_sample_paths, val_sample_paths = train_test_split(
+    #         all_sample_paths, test_size=self.val_split, random_state=42)
+
+    #     # Set number of samples to use
+    #     if self.num_train_samples is None:
+    #         self.num_train_samples = len(train_sample_paths)
+    #     if self.num_val_samples is None:
+    #         self.num_val_samples = len(val_sample_paths)
+    #     num_train = min(self.num_train_samples, len(train_sample_paths))
+    #     num_val = min(self.num_val_samples, len(val_sample_paths))
+
+    #     # Set sample paths to use
+    #     self.train_sample_paths = train_sample_paths[:num_train]
+    #     self.val_sample_paths = val_sample_paths[:num_val]
+
     def setup(self, stage=None):
+        self.pre_setup()
+
         if stage == "fit" or stage is None:
-            self.train_dataset = MoleculeDataset(self.train_sample_paths, self.pad_length, self.transform)
-            self.val_dataset = MoleculeDataset(self.val_sample_paths, self.pad_length, self.transform)
+            self.train_dataset = MoleculeDataset(self.train_sample_paths,
+                                                 self.pad_length,
+                                                 self.transform)
+            self.val_dataset = MoleculeDataset(self.val_sample_paths,
+                                               self.pad_length,
+                                               self.transform)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size,
@@ -131,3 +160,16 @@ class MoleculeDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size,
                           shuffle=False, num_workers=self.num_workers)
+
+    def transfer_batch_to_device(self, batch, device, dataloader_idx):
+        if isinstance(batch, dict):
+            for n in self.tensors_to_diffuse:
+                x = batch[n]
+                x = x.to(device)
+                batch[n] = x
+            if self.model_type == "self_attention":
+                batch["pad_mask_sequence"] = batch["pad_mask_sequence"].to(device)
+        else:
+            batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
+
+        return batch

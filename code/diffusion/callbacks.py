@@ -65,7 +65,7 @@ def get_checkpoint_callback(args):
     checkpoint_callback = ModelCheckpoint(
         dirpath=f"checkpoints/{args.run_name}",
         filename="{epoch}-{val_loss:.3f}",
-        save_top_k=1,
+        save_top_k=3,
         save_last=True,
         monitor="val_loss",
         mode="min"

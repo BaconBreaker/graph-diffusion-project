@@ -6,7 +6,11 @@ python main.py --dataset_path /home/thomas/graph-diffusion-project/graphs_fixed_
 """
 import argparse
 import logging
+from pprint import pformat
+
 import pytorch_lightning as pl
+import torch
+
 from train import train
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s %(message)s',
@@ -47,6 +51,10 @@ def parse_args():
     parser.add_argument("--model", type=str, default="self_attention",
                         help="Model to use for training, options: self_attention, conditional_unet")
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate to use for training")
+    parser.add_argument("--num_classes", type=int, default=None,
+                        help="Number of classes to use for the UNET.")
+    parser.add_argument("--checkpoint_path", type=str, default=None,
+                        help="checkpoint path. Will randomly initialise if None.")
 
     # ## Noise/Diffusion parameters ##
     parser.add_argument("--diffusion", type=str, default="gaussian",
@@ -91,6 +99,11 @@ def parse_args():
     parser.add_argument("--conditional", action="store_true",
                         help="Whether to train a conditional model")
 
+    # ## Plotting arguments ##
+    t_skips_help = "How many t steps to skip when generating images and gifs. " + \
+        "Can be used to speed up generation. Only used for gif generation."
+    parser.add_argument("--t_skips", type=int, default=1, help=t_skips_help)
+
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)
 
@@ -110,5 +123,5 @@ def check_args(args):
 
 if __name__ == "__main__":
     args = parse_args()
-    logger.log(logging.INFO, f"Arguments:\n{vars(args)}")
+    logger.log(logging.INFO, f"Arguments:\n{pformat(vars(args))}")
     train(args)
