@@ -105,7 +105,7 @@ class GaussianDiffusion(Diffusion):
                 save_graph(sample_dict, self.noise_steps, self.run_name, post_process)
 
             pbar = tqdm(reversed(range(1, self.noise_steps)),
-                        total=range(1, self.noise_steps),
+                        total=self.noise_steps - 1,
                         position=0)
 
             for i in pbar:
