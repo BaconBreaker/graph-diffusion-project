@@ -32,6 +32,11 @@ def self_attention_pretransform(sample_dict):
                 flattened upper triangle of the adjacency matrix
     """
     adj_matrix = sample_dict.pop('adj_matrix')
+    
+    # Save minimum and maximum distances
+    min_dist = adj_matrix.min()
+    max_dist = adj_matrix.max()
+    
     # Find the upper triangle of the adjacency matrix
     upper_index = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1], offset=1)
     # Flatten the upper triangle of the adjacency matrix
@@ -47,6 +52,8 @@ def self_attention_pretransform(sample_dict):
 
     sample_dict['edge_sequence'] = edge_sequence
     sample_dict['pad_mask_sequence'] = pad_mask_seq
+    sample_dict['min_dist'] = min_dist
+    sample_dict['max_dist'] = max_dist
 
     return sample_dict
 
@@ -75,6 +82,13 @@ def self_attention_posttransform(batch_dict):
     r = batch_dict['r']
     pdf = batch_dict['pdf']
     
+    #Rescaling acording to https://stats.stackexchange.com/questions/281162/scale-a-number-between-a-range
+    t_min = batch_dict['min_dist'].unsqueeze(-1)
+    t_max = batch_dict['max_dist'].unsqueeze(-1)
+    r_min = edge_seq.min(dim=1)[0].unsqueeze(-1)
+    r_max = edge_seq.max(dim=1)[0].unsqueeze(-1)
+    edge_seq = ((edge_seq - r_min) / (r_max - r_min)) * (t_max - t_min) + t_min
+
     adj_matrix = torch.zeros(edge_seq.shape[0], pad_mask.shape[1], pad_mask.shape[1])
     upper_index = torch.triu_indices(adj_matrix.shape[1], adj_matrix.shape[2])
     upper_index = upper_index[:,upper_index[0] != upper_index[1]]
@@ -96,15 +110,17 @@ class SelfAttentionNetwork(nn.Module):
         self.conditional = args.conditional
         self.in_channels = 1  # Edge sequence (1)
         self.hidden_channels = 64  # TODO: Make this a parameter
+        assert self.hidden_channels % 4 == 0
         self.out_channels = 1  # Edge sequence (1)
         self.size = args.pad_length
-        
+        self.heads = self.hidden_channels // 4
+
         self.lin_in = nn.Linear(self.in_channels, self.hidden_channels)
         self.lin_out = nn.Linear(self.hidden_channels, 1)
 
         layers = []
         for _ in range(10): # TODO: Make this a parameter
-            layers.append(EdgeSelfAttention(num_heads=1, channels=self.hidden_channels,
+            layers.append(EdgeSelfAttention(num_heads=self.heads, channels=self.hidden_channels,
                                             size=self.size, time_dim=self.time_dim))
         self.layers = nn.ModuleList(layers)
 
