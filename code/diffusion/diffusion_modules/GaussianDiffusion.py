@@ -59,25 +59,28 @@ class GaussianDiffusion(Diffusion):
         samples = self.noise_function(noise_shape)
         return samples
 
-    def diffuse(self, batch_dict, t):
-        noise = []
+    def diffuse(self, batch_dict, t, noise_list=None):
+        noises = []
         # Tensors_to_diifuse is a parser arg that specifies which tensors to diffuse
-        for name in self.tensors_to_diffuse:
-            n, x = self._diffuse(batch_dict[name], t)
-            noise.append(n)
+        for i, name in enumerate(self.tensors_to_diffuse):
+            if noise_list is not None:
+                noise = noise_list[i]
+            else:
+                noise = None
+            n, x = self._diffuse(batch_dict[name], t, noise=noise)
+            noises.append(n)
             batch_dict[name] = x
-        return batch_dict, noise
+        return batch_dict, noises
 
-    def _diffuse(self, x, t):
+    def _diffuse(self, x, t, noise=None):
         """Computes the diffusion process. Returns x_t and epsilon_t."""
         x_n_dims = len(x.shape[1:])
         sqrt_alpha_hat = unsqueeze_n(torch.sqrt(self.alpha_hat[t]), x_n_dims)
         sqrt_one_minus_alpha_hat = unsqueeze_n(torch.sqrt(1 - self.alpha_hat[t]), x_n_dims)
-        epsilon = self.sample_from_noise_fn(x.shape)
-        # print(x.device)
-        # print(sqrt_alpha_hat.device)
-        # print(sqrt_one_minus_alpha_hat.device)
-        # print(epsilon.device)
+        if noise is None:
+            epsilon = self.sample_from_noise_fn(x.shape)
+        else:
+            epsilon = noise
         x_t = sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * epsilon
 
         return x_t, epsilon
