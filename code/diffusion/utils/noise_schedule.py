@@ -9,7 +9,7 @@ def cosine_schedule_step(t, T, s):
     return torch.square(torch.cos(t_inner))
 
 
-def cosine_noise_schedule(T=1000, s=0.008, *_args, **_kwargs):
+def cosine_noise_schedule(T=1000, s=0.008, device="cpu", *_args, **_kwargs):
     """Computes a cosine noise schedule for T steps."""
     f0 = cosine_schedule_step(torch.tensor(0), T, s)
     ft = cosine_schedule_step(torch.arange(0, T + 1), T, s)
@@ -20,12 +20,14 @@ def cosine_noise_schedule(T=1000, s=0.008, *_args, **_kwargs):
     beta[beta > 0.999] = 0.999
     alpha = 1 - beta
     alpha_hat = alpha_hat[1:]
+    alpha, alpha_hat, beta = alpha.to(device), alpha_hat.to(device), beta.to(device)
     return alpha, alpha_hat, beta
 
 
-def linear_noise_schedule(T, beta_start=1e-4, beta_end=0.02, *_args, **_kwargs):
+def linear_noise_schedule(T, beta_start=1e-4, beta_end=0.02, device="cpu", *_args, **_kwargs):
     """Computes a linear noise schedule for T steps."""
     beta = torch.linspace(beta_start, beta_end, T)
     alpha = 1 - beta
     alpha_hat = torch.cumprod(alpha, dim=0)
+    alpha, alpha_hat, beta = alpha.to(device), alpha_hat.to(device), beta.to(device)
     return alpha, alpha_hat, beta
