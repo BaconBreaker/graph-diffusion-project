@@ -1,4 +1,6 @@
+import logging
 from os import path
+import time
 
 import torch
 from tqdm.auto import tqdm
@@ -51,7 +53,7 @@ class GaussianDiffusion(Diffusion):
         self.tensors_to_diffuse = args_.tensors_to_diffuse
 
     def noise_function(self, shape):
-        return torch.randn(shape)
+        return torch.randn(shape).to(self.device)
 
     def sample_from_noise_fn(self, noise_shape):
         samples = self.noise_function(noise_shape)
@@ -72,11 +74,15 @@ class GaussianDiffusion(Diffusion):
         sqrt_alpha_hat = unsqueeze_n(torch.sqrt(self.alpha_hat[t]), x_n_dims)
         sqrt_one_minus_alpha_hat = unsqueeze_n(torch.sqrt(1 - self.alpha_hat[t]), x_n_dims)
         epsilon = self.sample_from_noise_fn(x.shape)
+        # print(x.device)
+        # print(sqrt_alpha_hat.device)
+        # print(sqrt_one_minus_alpha_hat.device)
+        # print(epsilon.device)
         x_t = sqrt_alpha_hat * x + sqrt_one_minus_alpha_hat * epsilon
 
         return x_t, epsilon
 
-    def sample(self, model, batch_dict, save_output=False, post_process=None):
+    def sample(self, model, batch_dict, save_output=False, post_process=None, skips=1):
         """Sample n examples from the model, with optional labels for conditional sampling.
         The `labels` argument is ignored if the model is not conditional.
         """
@@ -95,13 +101,17 @@ class GaussianDiffusion(Diffusion):
             if save_output and post_process is not None:
                 save_graph(sample_dict, self.noise_steps, self.run_name, post_process)
 
-            for i in tqdm(reversed(range(1, self.noise_steps)), position=0):
+            pbar = tqdm(reversed(range(1, self.noise_steps)),
+                        total=range(1, self.noise_steps),
+                        position=0)
+
+            for i in pbar:
                 sample_dict = self.sample_previous_x(sample_dict, i, model,
                                                      save_output=save_output,
                                                      post_process=post_process)
 
         if save_output and post_process is not None:
-            save_gif(self.run_name, self.noise_steps, batch_size, fps=10)
+            save_gif(self.run_name, self.noise_steps, batch_size, fps=10, skips=skips)
 
         model.train()
 
@@ -111,9 +121,9 @@ class GaussianDiffusion(Diffusion):
                           save_output=False, post_process=None):
         """Given i, sample x_{i-1}"""
         n = sample_dict[self.tensors_to_diffuse[0]].size(0)
-        t = (torch.ones(n) * i).long()
+        t = (torch.ones(n) * i).long().to(self.device)
         prediction = model(sample_dict, t)
-        
+
         for name in self.tensors_to_diffuse:
             x = sample_dict[name]
             pred = prediction[name]
@@ -139,4 +149,7 @@ class GaussianDiffusion(Diffusion):
 
     def loss(self,  prediction, noise, _batch):
         """Computes the loss for the diffusion process."""
+        # print("loss function devices")
+        # print(prediction.device)
+        # print(noise.device)
         return f.mse_loss(prediction, noise, reduction="sum")

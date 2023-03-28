@@ -4,6 +4,8 @@ Simple self attention network that operates on adjecency matrix only.
 Example run:
 python main.py --dataset_path /home/thomas/graph-diffusion-project/graphs_fixed_num_135/ --run_name 123 --max_epochs 1000 --check_val_every_n_epoch 10 --batch_size 4 --tensors_to_diffuse edge_sequence --pad_length 135 --diffusion_timesteps 3 --num_workers 8 --log_every_n_steps 10
 """
+import logging
+
 import torch
 import torch.nn as nn
 
@@ -70,18 +72,18 @@ def self_attention_posttransform(batch_dict):
         pdf: (batch_size, 3000) tensor containing the pair distribution function values
         pad_mask: (batch_size, pad_length) tensor containing a mask for the padding
     """
-    edge_seq = batch_dict['edge_sequence']
-    pad_mask = batch_dict['pad_mask']
-    r = batch_dict['r']
-    pdf = batch_dict['pdf']
-    
+    edge_seq = batch_dict['edge_sequence'].cpu()
+    pad_mask = batch_dict['pad_mask'].cpu()
+    r = batch_dict['r'].cpu()
+    pdf = batch_dict['pdf'].cpu()
+
     adj_matrix = torch.zeros(edge_seq.shape[0], pad_mask.shape[1], pad_mask.shape[1])
     upper_index = torch.triu_indices(adj_matrix.shape[1], adj_matrix.shape[2])
     upper_index = upper_index[:,upper_index[0] != upper_index[1]]
     adj_matrix[:, upper_index[0], upper_index[1]] = edge_seq
     adj_matrix[:, upper_index[1], upper_index[0]] = edge_seq
 
-    atom_species = batch_dict['node_features'][:, :, 0]
+    atom_species = batch_dict['node_features'][:, :, 0].cpu()
 
     return adj_matrix, atom_species, r, pdf, pad_mask
 
@@ -98,27 +100,31 @@ class SelfAttentionNetwork(nn.Module):
         self.hidden_channels = 64  # TODO: Make this a parameter
         self.out_channels = 1  # Edge sequence (1)
         self.size = args.pad_length
-        
+        self.device = args.device
+
         self.lin_in = nn.Linear(self.in_channels, self.hidden_channels)
         self.lin_out = nn.Linear(self.hidden_channels, 1)
 
         layers = []
         for _ in range(10): # TODO: Make this a parameter
             layers.append(EdgeSelfAttention(num_heads=1, channels=self.hidden_channels,
-                                            size=self.size, time_dim=self.time_dim))
+                                            size=self.size, time_dim=self.time_dim,
+                                            device=self.device))
         self.layers = nn.ModuleList(layers)
 
-    @staticmethod
-    def pos_encoding(t, channels):
+    def pos_encoding(self, t, channels):
+
+        channel_range = torch.arange(0, channels, 2).float().to(self.device)
         inv_freq = 1.0 / (
             10000
-            ** (torch.arange(0, channels, 2).float() / channels)
+            ** (channel_range / channels)
         )
         pos_enc_sin = torch.sin(t.repeat(1, channels // 2) * inv_freq)
         pos_enc_cos = torch.cos(t.repeat(1, channels // 2) * inv_freq)
         pos_enc = torch.zeros(t.shape[0], channels)
         pos_enc[:, 0::2] = pos_enc_sin
         pos_enc[:, 1::2] = pos_enc_cos
+
         return pos_enc
 
     def forward(self, batch, t):
@@ -146,7 +152,8 @@ class SelfAttentionNetwork(nn.Module):
             x = layer(x, t, mask=mask)
 
         x = self.lin_out(x)
-        
+    
         batch['edge_sequence'] = x.squeeze(-1)
 
         return batch
+
