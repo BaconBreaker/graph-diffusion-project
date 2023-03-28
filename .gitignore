@@ -9,3 +9,4 @@ lightning_logs
 code/diffusion/plots/*
 code/diffusion/slurmfiles
 code/diffusion/checkpoints
+code/diffusion/saved_slurmfiles
