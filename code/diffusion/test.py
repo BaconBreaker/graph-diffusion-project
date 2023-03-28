@@ -64,8 +64,8 @@ logger = logging.getLogger(__name__)
 #     ex_batch = next(iter(dataloader.train_dataloader()))
 #     print(ex_batch.keys())
 #     print(ex_batch["node_features"].shape)
-#     # print(ex_batch["adj_matrix"].shape)
-#     # print(ex_batch["node_features"][0, :, 0])
+#     print(ex_batch["adj_matrix"].shape)
+#     print(ex_batch["node_features"][0, :, 0])
 #
 #     transform_batch = pretransform(ex_batch)
 #     print(transform_batch.keys())
@@ -90,12 +90,13 @@ def test2(args):
 
     train_dl = dataloader.train_dataloader()
     ex_batch = next(iter(train_dl))
-    save_graph(ex_batch, t=1, run_name=args.run_name + "_test", post_process=posttransform)
+    save_graph(ex_batch,
+               t=1,
+               run_name=args.run_name + "_test_generation",
+               post_process=posttransform)
 
-    sample_dict = diffusion_model.sample(model, ex_batch, save_output=True,
+    _ = diffusion_model.sample(model, ex_batch, save_output=True,
                                          post_process=posttransform)
-    print(sample_dict.keys())
-    # print(sample_dict["edge_sequence"].shape)
 
     print("OK.")
 

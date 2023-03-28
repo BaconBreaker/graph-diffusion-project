@@ -8,6 +8,9 @@ import imageio
 def save_graph(batch_dict, t, run_name, post_process):
     matplotlib.use("Agg")
 
+    if t % 10 != 0:
+        return
+
     # After post-processing all batches have the same structure.
     post_batch = post_process(batch_dict)
 
@@ -27,11 +30,16 @@ def save_graph(batch_dict, t, run_name, post_process):
         plt.close(fig)
 
 
-def save_gif(run_name, total_t, batch_size, fps=3):
+def save_gif(run_name: str, total_t: int, batch_size: int,
+             fps: int = 3, skips: int = 1):
+    if total_t < skips:
+        raise ValueError(f"skips ({skips}) is larger than the total t ({total_t})")
+
     frames = []
+
     folder_path = os.path.join("plots", run_name)
     for n in range(batch_size):
-        for t in reversed(range(1, total_t + 1)):
+        for t in reversed(range(skips, total_t + 1, skips)):
             folder_path = os.path.join("plots", run_name)
             file_path = os.path.join(folder_path, f"graph_{n}_timestep_{t}.png")
             image = imageio.v2.imread(file_path)
