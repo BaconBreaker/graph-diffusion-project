@@ -1,17 +1,19 @@
 #!/bin/bash
 #The partition is the queue you want to run on. standard is gpu and can be omitted.
 #SBATCH -p gpu --gres=gpu:titanrtx:1
-#SBATCH --job-name=graph_dif_cond_unet
+#SBATCH --job-name=graph_dif_selfatt
 #number of independent tasks we are going to start in this script
 #number of cpus we want to allocate for each program
 #SBATCH --cpus-per-task=4
 #the amount of memory allocated
-#SBATCH --mem=12000M
+#SBATCH --mem=16000M
 #We expect that our program should not run longer than 2 days
 #Note that a program will be killed once it exceeds this time!
 #SBATCH --time=8:00:00
 #Skipping many options! see man sbatch
 # From here on, we can start our program
+echo "Conditional UNET experiment:"
+
 echo "Python version:"
 python --version
 
@@ -20,11 +22,10 @@ echo "$CUDA_VISIBLE_DEVICES"
 
 echo "CUDA version:"
 nvcc --version
-
-echo "Conditional UNET experiment:"
-
-# python test_slurm.py
-
-python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name 123 --max_epochs 10 --check_val_every_n_epoch 1 \
-  --batch_size 16 --tensors_to_diffuse edge_sequence --pad_length 135 --diffusion_timesteps 100 --num_workers 4 \
-  --log_every_n_steps 10 --disable_carbon_tracker --accelerator "gpu" --devices 1
+# 
+# --tensors_to_diffuse edge_sequence
+python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name conditional_unet_tests \
+	--model self_attention --max_epochs 100 --check_val_every_n_epoch 5 --batch_size 2 \
+	--tensors_to_diffuse edge_sequence --pad_length 135 --diffusion_timesteps 1000 --num_workers 4 \
+	--log_every_n_steps 10 --device "cuda" --accelerator "gpu" --devices 1 --disable_carbon_tracker \
+	--sample_interval 0
