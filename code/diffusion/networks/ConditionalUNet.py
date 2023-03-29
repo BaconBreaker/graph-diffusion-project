@@ -34,15 +34,12 @@ class ConditionalUNet(nn.Module):
             self.label_emb = nn.Embedding(self.num_classes, self.time_dim)
 
     def pos_encoding(self, t, channels):
-        print(f"channels: {channels}")
         channel_range = torch.arange(0, channels, 2).float().to(self.device)
         inv_freq = 1.0 / (
             10000
             ** (channel_range / channels)
         )
 
-        print(f"t device: {t.device}")
-        print(f"inv_freq device: {inv_freq.device}")
         pos_enc_a = torch.sin(t.repeat(1, channels // 2) * inv_freq)
         pos_enc_b = torch.cos(t.repeat(1, channels // 2) * inv_freq)
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
