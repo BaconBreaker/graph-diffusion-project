@@ -10,7 +10,8 @@ from utils.plots import save_graph_str_batch
 
 def diffusion_process_log(batch_dict, posttransform, T, t_skips, diffusion_model, fixed_noises):
     pbar = tqdm(range(0, T, t_skips))
-    log_strs = save_graph_str_batch(batch_dict, posttransform, [])
+    batch_size = batch_dict[list(batch_dict.keys())[0]].shape[0]
+    log_strs = save_graph_str_batch(batch_dict, posttransform, [""]*batch_size)
 
     diffused_batch = batch_dict.copy()
     for t in pbar:
