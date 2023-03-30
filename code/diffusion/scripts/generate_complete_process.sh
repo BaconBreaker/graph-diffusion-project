@@ -24,7 +24,7 @@ echo "CUDA version:"
 nvcc --version
 
 # --tensors_to_diffuse edge_sequence
-python generate_gif.py --dataset_path ../../graphs_h5/ --run_name self_attention_checkpoint \
+python ovito_complete_gif.py --dataset_path ../../graphs_h5/ --run_name self_attention_checkpoint \
 	--model self_attention --max_epochs 100 --check_val_every_n_epoch 5 --batch_size 1 \
 	--tensors_to_diffuse edge_sequence --pad_length 23 --diffusion_timesteps 1000 --num_workers 8 \
     --device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
