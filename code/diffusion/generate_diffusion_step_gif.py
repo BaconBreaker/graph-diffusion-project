@@ -4,7 +4,6 @@ from main import parse_args, check_args
 from utils.get_config import get_model, get_diffusion
 from DiffusionWrapper import DiffusionWrapper
 from dataloader import MoleculeDataModule
-from callbacks import get_callbacks
 from utils.plots import save_graph
 from utils.metrics import get_metrics
 from tqdm.auto import tqdm
@@ -45,16 +44,20 @@ def generate_gif(args):
     tensors_to_diffuse = diffusion.diffusion_model.tensors_to_diffuse
     fixed_noises = [diffusion.diffusion_model.sample_from_noise_fn(
         ex_batch[tensor].shape) for tensor in tensors_to_diffuse]
-    pbar = tqdm(range(0, diffusion.diffusion_model.num_steps))
+
+    noise_steps = diffusion.diffusion_model.noise_steps
+    pbar = tqdm(range(0, noise_steps))
+
 
     for t in pbar:
-        diffused_batch = diffusion.diffusion_model.diffuse(ex_batch, t, fixed_noises)
-        save_graph(diffused_batch, t, args.run_name, posttransform)
+        diffused_batch, _ = diffusion.diffusion_model.diffuse(ex_batch, t, fixed_noises)
+        save_graph(diffused_batch, t + 1, args.run_name, posttransform)
 
     logging.info("tensors have been generated")
 
-    save_gif(args.run_name, args.noise_steps, args.batch_size, fps=10, skips=args.t_skips)
-    
+    save_gif(args.run_name, noise_steps, args.batch_size, fps=10,
+             skips=args.t_skips)
+
     logging.info("Gifs have been saved")
 
 def main():
