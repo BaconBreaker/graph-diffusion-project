@@ -5,7 +5,8 @@ import networkx as nx
 import imageio
 import numpy as np
 from mendeleev import element
-
+from sklearn.decomposition import PCA
+from utils.pdf import multidimensional_scaling
 
 def save_graph(batch_dict, t, run_name, post_process):
     matplotlib.use("Agg")
@@ -83,6 +84,38 @@ def xyz_to_str(xyz, atom_species=None):
 
     return s
 
-def save_to_csv(file_name, s):
+def adj_to_str(adj_matrix, atom_species=None):
+    # Convert to point cloud and rotate using PCA
+    xyz = multidimensional_scaling(adj_matrix)
+    xyz = PCA(n_components=3).fit_transform(xyz)
+    return xyz_to_str(xyz, atom_species)
+
+def save_graph_str_batch(batch_dict, post_process, log_strs):
+    # After post-processing all batches have the same structure.
+    post_batch = post_process(batch_dict)
+    matrices_in = post_batch[0].cpu().detach().numpy()
+    pad_masks = post_batch[4].cpu().detach().numpy()
+    atom_species = post_batch[1].cpu().detach().numpy()
+    
+    strs = []
+    for matrix_in, pad_mask, atom_spec in zip(matrices_in, pad_masks, atom_species):
+        s = save_graph_str(matrix_in, pad_mask, atom_spec)
+        strs.append(s)
+
+    assert len(log_strs) == len(strs)
+    log_strs = [a+b for a, b in zip(log_strs, strs)] # Concatenate strings
+    return log_strs
+
+def save_graph_str(matrix_in, pad_mask, atom_species=None):
+    if matrix_in.shape[1] != 3:  # If matrix_in is adjecency matrix
+        adj_matrix = matrix_in[pad_mask][:, pad_mask]
+        species = atom_species[pad_mask]
+        return adj_to_str(adj_matrix, species)
+    else:  # If matrix_in is point cloud
+        point_cloud = matrix_in[pad_mask]
+        species = atom_species[pad_mask]
+        return xyz_to_str(point_cloud, species)
+
+def save_to_file(file_name, s):
     with open(file_name, "w") as f:
         f.write(s)

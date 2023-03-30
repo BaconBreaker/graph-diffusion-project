@@ -42,7 +42,7 @@ def multidimensional_scaling(adj_matrix):
         max_iter=3000,
         eps=1e-9,
         dissimilarity="precomputed",
-        n_jobs=4
+        n_jobs=-1
     )
 
     point_cloud = mds.fit_transform(_adj)

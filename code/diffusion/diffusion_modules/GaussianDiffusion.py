@@ -10,6 +10,7 @@ import torch.nn.functional as f
 from diffusion_modules.BaseDiffusion import Diffusion
 from utils.stuff import unsqueeze_n
 from utils.plots import save_graph, save_gif
+from utils.plots import save_graph_str_batch
 
 
 def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
@@ -86,43 +87,57 @@ class GaussianDiffusion(Diffusion):
 
         return x_t, epsilon
 
-    def sample(self, model, batch_dict, save_output=False, post_process=None, skips=1):
+    def sample(self, model, batch_dict, save_output=False, post_process=None, noise=None, t_skips=1, log_strs=None):
         """Sample n examples from the model, with optional labels for conditional sampling.
         The `labels` argument is ignored if the model is not conditional.
         """
+        
+        # If we are saving output, we need to create a str to log the output
+        # in ovito format.
+        if log_strs is None:
+            log_strs = []
 
         model.eval()
         with torch.no_grad():
             # Make a copy of the batch_dict, and replace the tensors to diffuse with noise.
             # This ensures that vectors used for conditioning are not modified.
             sample_dict = batch_dict.copy()
-            batch_size = sample_dict[self.tensors_to_diffuse[0]].size(0)
-            for name in self.tensors_to_diffuse:
-                noise_shape = batch_dict[name].shape
-                x = self.sample_from_noise_fn(noise_shape)
-                sample_dict[name] = x
 
+            # If noise is not given, sample from the noise function.
+            if noise is None:
+                noises = [self.sample_from_noise_fn(
+                    batch_dict[tensor].shape) for tensor in self.tensors_to_diffuse]
+            else:
+                noises = noise
+
+            # Set the tensors to diffuse to the sampled noise.
+            for i, name in enumerate(self.tensors_to_diffuse):
+                sample_dict[name] = noises[i]
+
+            # Save the pure noise sample.
             if save_output and post_process is not None:
-                save_graph(sample_dict, self.noise_steps, self.run_name, post_process)
+                log_strs = save_graph_str_batch(batch_dict, post_process, log_strs)
 
             pbar = tqdm(reversed(range(1, self.noise_steps)),
                         total=self.noise_steps - 1,
                         position=0)
 
             for i in pbar:
-                sample_dict = self.sample_previous_x(sample_dict, i, model,
-                                                     save_output=save_output,
-                                                     post_process=post_process)
+                sample_dict = self.sample_previous_x(sample_dict, i, model)
+                if save_output and post_process is not None and i % t_skips == 0:
+                    log_strs = save_graph_str_batch(batch_dict, post_process, log_strs)
 
+        # Save the final sample to a file.
         if save_output and post_process is not None:
-            save_gif(self.run_name, self.noise_steps, batch_size, fps=10, skips=skips)
+            for i, log in enumerate(log_strs):
+                with open(f"{self.run_name}/sample_{i}.txt", "w") as f:
+                    f.write(log)
 
         model.train()
 
-        return sample_dict
+        return sample_dict, log_strs
 
-    def sample_previous_x(self, sample_dict, i, model,
-                          save_output=False, post_process=None):
+    def sample_previous_x(self, sample_dict, i, model):
         """Given i, sample x_{i-1}"""
         n = sample_dict[self.tensors_to_diffuse[0]].size(0)
         t = (torch.ones(n) * i).long().to(self.device)
@@ -146,9 +161,6 @@ class GaussianDiffusion(Diffusion):
 
             sample_dict[name] = x
 
-            if save_output and post_process is not None:
-                save_graph(sample_dict, i, self.run_name, post_process)
-
         return sample_dict
 
     def loss(self,  prediction, noise, _batch):
@@ -156,4 +168,4 @@ class GaussianDiffusion(Diffusion):
         # print("loss function devices")
         # print(prediction.device)
         # print(noise.device)
-        return f.mse_loss(prediction, noise, reduction="sum")
+        return f.mse_loss(prediction, noise)
