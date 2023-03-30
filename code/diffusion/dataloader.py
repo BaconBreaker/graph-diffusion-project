@@ -16,6 +16,10 @@ import glob
 from utils.data import load_structure, pad_array, make_adjecency_matrix
 from utils.graph_transformer_utils import MoleculeDatasetInfo
 
+
+# Set path to single molecule for debugging
+singe_sample_name = "graph_AntiFlourite_Ra2O_r5.h5"
+
 class MoleculeDataset(Dataset):
     def __init__(self, sample_list, pad_length, transform=None):
         """
@@ -90,6 +94,7 @@ class MoleculeDataModule(pl.LightningDataModule):
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
         self.tensors_to_diffuse = args.tensors_to_diffuse
+        self.single_sample = args.single_sample
 
         self.pad_length = args.pad_length
         self.transform = transform
@@ -118,6 +123,11 @@ class MoleculeDataModule(pl.LightningDataModule):
         # Set sample paths to use
         self.train_sample_paths = train_sample_paths[:num_train]
         self.val_sample_paths = val_sample_paths[:num_val]
+        
+        # If overfitting on single sample, set sample paths to single sample
+        if self.single_sample:
+            self.train_sample_paths = [self.dataset_path + "/" + singe_sample_name]
+            self.val_sample_paths = [self.dataset_path + "/" + singe_sample_name]
 
     # def prepare_data(self):
     #     """

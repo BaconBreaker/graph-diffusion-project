@@ -61,16 +61,17 @@ class GaussianDiffusion(Diffusion):
 
     def diffuse(self, batch_dict, t, noise_list=None):
         noises = []
+        diff_dict = batch_dict.copy()
         # Tensors_to_diifuse is a parser arg that specifies which tensors to diffuse
         for i, name in enumerate(self.tensors_to_diffuse):
             if noise_list is not None:
                 noise = noise_list[i]
             else:
                 noise = None
-            n, x = self._diffuse(batch_dict[name], t, noise=noise)
+            x, n = self._diffuse(diff_dict[name], t, noise=noise)
             noises.append(n)
-            batch_dict[name] = x
-        return batch_dict, noises
+            diff_dict[name] = x
+        return diff_dict, noises
 
     def _diffuse(self, x, t, noise=None):
         """Computes the diffusion process. Returns x_t and epsilon_t."""

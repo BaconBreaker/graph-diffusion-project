@@ -30,15 +30,22 @@ def multidimensional_scaling(adj_matrix):
     returns:
         point cloud (np.array): point cloud of size (n, 3)
     """
+    # Symmetrise adjecency matrix
+    _adj = torch.zeros_like(adj_matrix)
+    triu_indices = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1], offset=1)
+    _adj[triu_indices[0], triu_indices[1]] = adj_matrix[triu_indices[0], triu_indices[1]]
+    _adj[triu_indices[1], triu_indices[0]] = adj_matrix[triu_indices[0], triu_indices[1]]
+
     mds = MDS(
         n_components=3,
-        metric=False,
+        metric=True,
         max_iter=3000,
         eps=1e-9,
         dissimilarity="precomputed",
-        n_jobs=1
+        n_jobs=4
     )
-    point_cloud = mds.fit_transform(adj_matrix)
+
+    point_cloud = mds.fit_transform(_adj)
     return point_cloud
 
 
@@ -93,12 +100,6 @@ def calculate_pdf_from_adjecency_matrix(adj_matrix, atom_species):
     returns:
         pdf (np.array): array of evaluated points of the pdf function of shape (3000,)
     """
-    # Symmetrise adjecency matrix
-    triu_indices = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1], offset=1)
-    diag_indices = torch.arange(0, adj_matrix.shape[0], dtype=torch.long).repeat(2,1)
-    adj_matrix[triu_indices[0], triu_indices[1]] = adj_matrix[triu_indices[1], triu_indices[0]]
-    adj_matrix[diag_indices[0], diag_indices[1]] = 0
-
     point_cloud = multidimensional_scaling(adj_matrix)
     pdf = calculate_pdf(point_cloud, atom_species)
     return pdf

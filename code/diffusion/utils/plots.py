@@ -3,6 +3,8 @@ from matplotlib import pyplot as plt
 import os
 import networkx as nx
 import imageio
+import numpy as np
+from mendeleev import element
 
 
 def save_graph(batch_dict, t, run_name, post_process):
@@ -47,3 +49,40 @@ def save_gif(run_name: str, total_t: int, batch_size: int,
 
         gif_path = os.path.join(folder_path, f"graph_{n}.gif")
         imageio.mimsave(gif_path, frames, fps=fps)
+
+def xyz_to_str(xyz, atom_species=None):
+    """
+    Write a string in format ovito can read
+    args:
+        xyz: np.array of shape (n_atoms, 3)
+        atom_species: np.array of shape (n_atoms, 1)
+    returns:
+        s: string in ovito format
+    """
+    n_atoms = xyz.shape[0]
+    if atom_species is None:
+        atom_species = np.array(["C"]*n_atoms).reshape(-1, 1)
+
+    # if atom_species is number, convert to atomic symbol
+    if np.issubdtype(atom_species.dtype, np.number):
+        atom_species = np.array(
+            [element(int(atom)).symbol for atom in atom_species]).reshape(-1, 1)
+
+    s = ""
+    vals = np.concatenate((atom_species, xyz), axis=1)
+
+    # Number of atoms
+    s += str(n_atoms) + "\n"
+    
+    # Comment line, just keep empty for now
+    s += "\n"
+    
+    # Coordinates for each atom
+    for atom, x, y, z in vals:
+        s += f"{atom} {x} {y} {z} \n"
+
+    return s
+
+def save_to_csv(file_name, s):
+    with open(file_name, "w") as f:
+        f.write(s)

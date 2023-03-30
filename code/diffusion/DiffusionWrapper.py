@@ -97,6 +97,7 @@ class DiffusionWrapper(pl.LightningModule):
 
         do_sample = self.sample_interval > 0
         do_sample = do_sample and (self.current_epoch + 1) % self.sample_interval == 0
+        do_sample = do_sample and batch_idx == 0
         if do_sample:
             self.sample_graphs(batch)
 

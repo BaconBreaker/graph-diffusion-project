@@ -46,6 +46,8 @@ def parse_args():
                         help="Fraction of training data to use for validation")
     parser.add_argument("--pad_length", type=int, default=512, #Longest over all datasets is 511
                         help="Length to pad the graphs to, None means no the script will pad to the max length")
+    parser.add_argument("--single_sample", action="store_true", default=False,
+                        help="Whether to use a single (specific) sample for training")
 
     # ## Model parameters ##
     parser.add_argument("--model", type=str, default="self_attention",
@@ -103,6 +105,10 @@ def parse_args():
     t_skips_help = "How many t steps to skip when generating images and gifs. " + \
         "Can be used to speed up generation. Only used for gif generation."
     parser.add_argument("--t_skips", type=int, default=1, help=t_skips_help)
+    parser.add_argument("--method", type=str, default="adj_matrix",
+                        help="Method for simple plotting, disregard to set to adj_matrix or xyz")
+    parser.add_argument("--fix_noise", action="store_true",
+                        help="Whether to fix the noise for plotting")
 
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)
