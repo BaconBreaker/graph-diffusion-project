@@ -7,6 +7,7 @@ import numpy as np
 from mendeleev import element
 from sklearn.decomposition import PCA
 from utils.pdf import multidimensional_scaling
+import torch
 
 def save_graph(batch_dict, t, run_name, post_process):
     matplotlib.use("Agg")
@@ -63,6 +64,12 @@ def xyz_to_str(xyz, atom_species=None):
     n_atoms = xyz.shape[0]
     if atom_species is None:
         atom_species = np.array(["C"]*n_atoms).reshape(-1, 1)
+    else:
+        atom_species = atom_species.numpy()
+
+    # edge-case when atom_species is a numpy array but has dtype torch.float32
+    if atom_species.dtype == torch.float32:
+        atom_species = atom_species.astype(np.float32)
 
     # if atom_species is number, convert to atomic symbol
     if np.issubdtype(atom_species.dtype, np.number):
@@ -74,10 +81,10 @@ def xyz_to_str(xyz, atom_species=None):
 
     # Number of atoms
     s += str(n_atoms) + "\n"
-    
+
     # Comment line, just keep empty for now
     s += "\n"
-    
+
     # Coordinates for each atom
     for atom, x, y, z in vals:
         s += f"{atom} {x} {y} {z} \n"
@@ -93,10 +100,9 @@ def adj_to_str(adj_matrix, atom_species=None):
 def save_graph_str_batch(batch_dict, post_process, log_strs):
     # After post-processing all batches have the same structure.
     post_batch = post_process(batch_dict)
-    matrices_in = post_batch[0].cpu().detach().numpy()
-    pad_masks = post_batch[4].cpu().detach().numpy()
-    atom_species = post_batch[1].cpu().detach().numpy()
-    
+    matrices_in = post_batch[0].cpu().detach()
+    pad_masks = post_batch[4].cpu().detach()
+    atom_species = post_batch[1].cpu().detach()
     strs = []
     for matrix_in, pad_mask, atom_spec in zip(matrices_in, pad_masks, atom_species):
         s = save_graph_str(matrix_in, pad_mask, atom_spec)
@@ -107,6 +113,8 @@ def save_graph_str_batch(batch_dict, post_process, log_strs):
     return log_strs
 
 def save_graph_str(matrix_in, pad_mask, atom_species=None):
+    # Invert pad mask
+    pad_mask = torch.logical_not(pad_mask.bool())
     if matrix_in.shape[1] != 3:  # If matrix_in is adjecency matrix
         adj_matrix = matrix_in[pad_mask][:, pad_mask]
         species = atom_species[pad_mask]
