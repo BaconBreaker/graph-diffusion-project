@@ -16,10 +16,10 @@ def equivariant_pretransform(sample_dict):
     """
     node_features = sample_dict['node_features']
     atom_species = node_features[:, 0]
-    
+
     # Save the original atom species
     sample_dict['metal_type'] = atom_species[atom_species != 8.0][0]
-    
+
     # Atom species = -1 if oxygen, 1 if metal
     atom_species[atom_species == 8.0] = -1
     atom_species[atom_species != -1] = 1
@@ -87,10 +87,7 @@ class EquivariantNetwork(nn.Module):
         self.layers = nn.Sequential(*layers)
 
     def pos_encoding(self, t):
-        inv_freq = 1.0 / (
-            10000
-            ** (torch.arange(0, 2, 2).float() / 2)
-        )
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, 2, 2).float() / 2))
         pos_enc_a = torch.sin(t.repeat(1, 1) * inv_freq)
         pos_enc_b = torch.cos(t.repeat(1, 1) * inv_freq)
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
@@ -149,7 +146,7 @@ class EquivariantNetwork(nn.Module):
 
         batch['xyz_atom_species'] = torch.cat((x, h), dim=-1)
         return batch
-    
+
     def pad_noise(self, noise, batch_dict):
         """
         Pads the noise to the correct length
@@ -193,7 +190,7 @@ class EGCLayer(nn.Module):
         # Input = concat([hi, aggregated_j m_ij])
         self.node1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.node2 = nn.Linear(hidden_dim, hidden_dim)
-        
+
         # Node coordinate update
         self.cor1 = nn.Linear(hidden_dim * 2 + 2, hidden_dim)
         self.cor2 = nn.Linear(hidden_dim, hidden_dim)
@@ -240,7 +237,7 @@ class EGCLayer(nn.Module):
         differences = (x[:, :, None, :] - x[:, None, :, :])
         distances = torch.norm(differences, dim=-1).unsqueeze(-1)
         distances_squarred = distances ** 2
-        
+
         # Layer norm on node features
         h = self.lnh(h)
 
@@ -253,8 +250,8 @@ class EGCLayer(nn.Module):
 
         # Edge inference
         e_matrix = self.edge_inference(m_matrix)
-        diag = torch.eye(e_matrix.shape[1], e_matrix.shape[2], device=self.device).unsqueeze(0).unsqueeze(-1)
-        e_matrix =  e_matrix * (1 - diag)  # Remove where i == j
+        diag = torch.eye(e_matrix.shape[1], e_matrix.shape[2]).unsqueeze(0).unsqueeze(-1)
+        e_matrix = e_matrix * (1 - diag)  # Remove where i == j
 
         # Node update
         h_next = self.node_update(h, torch.mean(e_matrix * m_matrix, dim=-2))
@@ -307,7 +304,7 @@ class GammaNetwork(torch.nn.Module):
 
         # Normalize to [0, 1]
         normalized_gamma = (gamma_tilde_t - gamma_tilde_0) / (
-                gamma_tilde_1 - gamma_tilde_0)
+            gamma_tilde_1 - gamma_tilde_0)
 
         # Rescale to [gamma_0, gamma_1]
         gamma = self.gamma_0 + (self.gamma_1 - self.gamma_0) * normalized_gamma

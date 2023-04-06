@@ -9,7 +9,6 @@ import logging
 from pprint import pformat
 
 import pytorch_lightning as pl
-import torch
 
 from train import train
 
@@ -44,7 +43,7 @@ def parse_args():
                         help="Number of validation samples to use for training, None means all")
     parser.add_argument("--val_split", type=float, default=0.1,
                         help="Fraction of training data to use for validation")
-    parser.add_argument("--pad_length", type=int, default=512, #Longest over all datasets is 511
+    parser.add_argument("--pad_length", type=int, default=512,  # Longest over all datasets is 511
                         help="Length to pad the graphs to, None means no the script will pad to the max length")
     parser.add_argument("--single_sample", action="store_true", default=False,
                         help="Whether to use a single (specific) sample for training")
