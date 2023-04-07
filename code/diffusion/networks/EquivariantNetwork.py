@@ -123,6 +123,9 @@ class EquivariantNetwork(nn.Module):
 
         # Embedding in
         t_emb = self.time_emb(t)
+        print("pdf device: ", pdf.device)
+        print("t_emb device: ", t_emb.device)
+        print("xh device: ", xh.device)
         pdf_emb = self.pdf_emb(pdf)
         t_emb = t_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)

@@ -107,7 +107,6 @@ def save_graph_str_batch(batch_dict, post_process, log_strs):
     for matrix_in, pad_mask, atom_spec in zip(matrices_in, pad_masks, atom_species):
         s = save_graph_str(matrix_in, pad_mask, atom_spec)
         strs.append(s)
-    print("lengths", len(log_strs), len(strs))
     assert len(log_strs) == len(strs)
     log_strs = [a+b for a, b in zip(log_strs, strs)] # Concatenate strings
     return log_strs
