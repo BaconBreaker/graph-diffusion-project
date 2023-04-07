@@ -250,7 +250,9 @@ class EGCLayer(nn.Module):
 
         # Edge inference
         e_matrix = self.edge_inference(m_matrix)
-        torch.diagonal(e_matrix, 0, dim1=1, dim2=2).zero_()  # Remove where i == j
+        diag = torch.eye(e_matrix.shape[1]).unsqueeze(0).to(e_matrix.device)
+        print(diag.shape, e_matrix.shape)
+        e_matrix = e_matrix * (1 - diag)  # Remove where i == j
 
         # Node update
         h_next = self.node_update(h, torch.mean(e_matrix * m_matrix, dim=-2))
@@ -259,7 +261,7 @@ class EGCLayer(nn.Module):
         cor_weight = self.coordinate_update(h_cart, distances_squarred, org_distances_squarred)
         cor_shift = differences / (distances + 1)
         cor_shift_weighted = cor_weight * cor_shift
-        torch.diagonal(cor_shift_weighted, 0, dim1=1, dim2=2).zero_()  # Remove where i == j
+        cor_shift_weighted = cor_shift_weighted * (1 - diag)  # Remove where i == j
         cor_update = torch.mean(cor_shift_weighted, dim=-2)
         x_next = x + cor_update
 
