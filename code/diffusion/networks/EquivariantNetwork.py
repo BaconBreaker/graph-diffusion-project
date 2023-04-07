@@ -259,7 +259,7 @@ class EGCLayer(nn.Module):
         cor_weight = self.coordinate_update(h_cart, distances_squarred, org_distances_squarred)
         cor_shift = differences / (distances + 1)
         cor_shift_weighted = cor_weight * cor_shift
-        cor_shift_weighted = cor_shift_weighted * (1 - diag)  # Remove where i == j
+        torch.diagonal(cor_shift_weighted, 0, dim1=1, dim2=2).zero_()  # Remove where i == j
         cor_update = torch.mean(cor_shift_weighted, dim=-2)
         x_next = x + cor_update
 
