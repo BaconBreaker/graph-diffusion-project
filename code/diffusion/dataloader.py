@@ -173,17 +173,16 @@ class MoleculeDataModule(pl.LightningDataModule):
 
     def transfer_batch_to_device(self, batch, device, dataloader_idx):
         if isinstance(batch, dict):
-            for k in batch.keys():
-                x = batch[k]
+            for n in self.tensors_to_diffuse:
+                x = batch[n]
                 x = x.to(device)
-                batch[k] = x
+                batch[n] = x
+            if self.model_type == "self_attention":
+                batch["pad_mask_sequence"] = batch["pad_mask_sequence"].to(device)
 
-        #     for n in self.tensors_to_diffuse:
-        #         x = batch[n]
-        #         x = x.to(device)
-        #         batch[n] = x
-        #     if self.model_type == "self_attention":
-        #         batch["pad_mask_sequence"] = batch["pad_mask_sequence"].to(device)
+            pdf = batch["pdf"]
+            pdf = pdf.to(device)
+            batch["pdf"] = pdf
         else:
             batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
 
