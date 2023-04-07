@@ -13,7 +13,7 @@ from diffpy.srreal.pdfcalculator import DebyePDFCalculator
 
 from mendeleev import element
 import multiprocessing as mp
-mp.set_start_method('spawn')
+# mp.set_start_method('spawn')
 
 
 # Task for parralelization in calculate_pdf
@@ -62,9 +62,12 @@ def calculate_pdf(point_cloud, atom_species):
     structure = Structure()
     atom_species = atom_species.int()
 
-    with mp.Pool() as pool:
-        for atom in pool.imap(task, zip(atom_species, point_cloud)):
-            structure.append(atom)
+    # with mp.Pool() as pool:
+    #     for atom in pool.imap(task, zip(atom_species, point_cloud)):
+    #         structure.append(atom)
+
+    for atom, xyz in zip(atom_species, point_cloud):
+        structure.append(Atom(element(atom.item()).symbol, xyz))
 
     structure.B11 = 0.3  # Keep to 0.3, isotropic vibration on first axis
     structure.B22 = 0.3  # Keep to 0.3, isotropic vibration on second axis
