@@ -23,9 +23,11 @@ def diffusion_process_log(batch_dict, posttransform, T, t_skips, diffusion_model
 def generate_samples(args):
     logging.info("Loading model and transforms.")
     model, pretransform, posttransform = get_model(args)
+    model.to(args.device)
 
     logging.info("Loading diffusion noise model")
     diffusion_model = get_diffusion(args)
+    diffusion_model.to(args.device)
 
     logging.info("Loading dataloader")
     dataloader = MoleculeDataModule(args=args, transform=pretransform)
