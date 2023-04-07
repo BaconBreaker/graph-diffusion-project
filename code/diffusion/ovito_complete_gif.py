@@ -11,7 +11,7 @@ from utils.plots import save_graph_str_batch
 def diffusion_process_log(batch_dict, posttransform, T, t_skips, diffusion_model, fixed_noises):
     pbar = tqdm(range(0, T, t_skips))
     batch_size = batch_dict[list(batch_dict.keys())[0]].shape[0]
-    log_strs = save_graph_str_batch(batch_dict, posttransform, [""]*batch_size)
+    log_strs = save_graph_str_batch(batch_dict, posttransform, [""] * batch_size)
 
     diffused_batch = batch_dict.copy()
     for t in pbar:
@@ -19,6 +19,7 @@ def diffusion_process_log(batch_dict, posttransform, T, t_skips, diffusion_model
         log_strs = save_graph_str_batch(diffused_batch, posttransform, log_strs)
 
     return log_strs
+
 
 def generate_samples(args):
     logging.info("Loading model and transforms.")
@@ -37,7 +38,7 @@ def generate_samples(args):
     logging.info("Loading diffusion wrapper model.")
     if args.checkpoint_path is not None:
         diffusion = DiffusionWrapper.load_from_checkpoint(
-            args.checkpoint_path,denoising_fn=model, diffusion_model=diffusion_model,
+            args.checkpoint_path, denoising_fn=model, diffusion_model=diffusion_model,
             lr=args.lr, posttransform=posttransform, metrics=metrics,
             sample_interval=args.sample_interval
         )
@@ -63,7 +64,8 @@ def generate_samples(args):
         fixed_noises = None
 
     logging.info("Starting diffusion process")
-    # log_strs = diffusion_process_log(ex_batch, posttransform, args.diffusion_timesteps, args.t_skips, diffusion_model, fixed_noises)
+    log_strs = diffusion_process_log(ex_batch, posttransform, args.diffusion_timesteps,
+                                     args.t_skips, diffusion_model, fixed_noises)
     logging.info("Diffusion process finished")
     batch_size = ex_batch[list(ex_batch.keys())[0]].shape[0]
     log_strs = [""] * batch_size
@@ -77,10 +79,12 @@ def generate_samples(args):
                             log_strs=log_strs)
     logging.info("Reverse diffusion process finished")
 
+
 def main():
     args = parse_args()
     check_args(args)
     generate_samples(args)
+
 
 if __name__ == "__main__":
     main()
