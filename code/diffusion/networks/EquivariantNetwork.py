@@ -250,8 +250,7 @@ class EGCLayer(nn.Module):
 
         # Edge inference
         e_matrix = self.edge_inference(m_matrix)
-        diag = torch.eye(e_matrix.shape[1]).unsqueeze(0).to(e_matrix.device)
-        print(diag.shape, e_matrix.shape)
+        diag = torch.eye(e_matrix.shape[1]).unsqueeze(0).unsqueeze(-1).to(e_matrix.device)
         e_matrix = e_matrix * (1 - diag)  # Remove where i == j
 
         # Node update
