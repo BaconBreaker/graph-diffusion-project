@@ -64,8 +64,10 @@ def generate_samples(args):
         fixed_noises = None
 
     logging.info("Starting diffusion process")
-    log_strs = diffusion_process_log(ex_batch, posttransform, args.diffusion_timesteps, args.t_skips, diffusion_model, fixed_noises)
+    # log_strs = diffusion_process_log(ex_batch, posttransform, args.diffusion_timesteps, args.t_skips, diffusion_model, fixed_noises)
     logging.info("Diffusion process finished")
+    batch_size = ex_batch[list(ex_batch.keys())[0]].shape[0]
+    log_strs = [""] * batch_size
 
     logging.info("Starting reverse diffusion process")
     diffusion.sample_graphs(ex_batch,
