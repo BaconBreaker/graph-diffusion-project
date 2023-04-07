@@ -8,6 +8,9 @@ import argparse
 import logging
 from pprint import pformat
 
+import torch
+torch.autograd.set_detect_anomaly(True)
+
 import pytorch_lightning as pl
 
 from train import train
