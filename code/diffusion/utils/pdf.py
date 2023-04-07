@@ -13,6 +13,7 @@ from diffpy.srreal.pdfcalculator import DebyePDFCalculator
 
 from mendeleev import element
 import multiprocessing as mp
+mp.set_start_method('spawn')
 
 
 # Task for parralelization in calculate_pdf
