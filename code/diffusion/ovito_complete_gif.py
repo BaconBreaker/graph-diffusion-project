@@ -27,7 +27,6 @@ def generate_samples(args):
 
     logging.info("Loading diffusion noise model")
     diffusion_model = get_diffusion(args)
-    diffusion_model.to(args.device)
 
     logging.info("Loading dataloader")
     dataloader = MoleculeDataModule(args=args, transform=pretransform)
