@@ -13,12 +13,13 @@ from scipy.spatial.distance import pdist
 
 import glob
 
-from utils.data import load_structure, pad_array, make_adjecency_matrix
+from utils.data import load_structure, pad_array  # make_adjecency_matrix
 from utils.graph_transformer_utils import MoleculeDatasetInfo
 
 
 # Set path to single molecule for debugging
 singe_sample_name = "graph_AntiFlourite_Ra2O_r5.h5"
+
 
 class MoleculeDataset(Dataset):
     def __init__(self, sample_list, pad_length, transform=None):
@@ -55,7 +56,7 @@ class MoleculeDataset(Dataset):
         pad_mask[node_features.shape[0]:] = True
 
         node_features = pad_array(node_features, self.pad_length, 0)
-        
+
         xyz = node_features[:, 4:7]
         adj_matrix = torch.zeros((self.pad_length, self.pad_length), dtype=torch.float32)
         tri_cor = torch.triu_indices(node_features.shape[0], node_features.shape[0], offset=1)
@@ -103,7 +104,6 @@ class MoleculeDataModule(pl.LightningDataModule):
                                                  n_node_types=2,
                                                  n_edge_types=30)
 
-
     def pre_setup(self):
         # Collect sample paths and split them into train and val
         all_sample_paths = glob.glob(self.dataset_path + "/*.h5")
@@ -123,11 +123,11 @@ class MoleculeDataModule(pl.LightningDataModule):
         # Set sample paths to use
         self.train_sample_paths = train_sample_paths[:num_train]
         self.val_sample_paths = val_sample_paths[:num_val]
-        
+
         # If overfitting on single sample, set sample paths to single sample
         if self.single_sample:
-            self.train_sample_paths = [self.dataset_path + "/" + singe_sample_name]
-            self.val_sample_paths = [self.dataset_path + "/" + singe_sample_name]
+            self.train_sample_paths = [self.dataset_path + "/" + singe_sample_name] * 200
+            self.val_sample_paths = [self.dataset_path + "/" + singe_sample_name] * 50
 
     # def prepare_data(self):
     #     """
@@ -179,10 +179,9 @@ class MoleculeDataModule(pl.LightningDataModule):
                 batch[n] = x
             if self.model_type == "self_attention":
                 batch["pad_mask_sequence"] = batch["pad_mask_sequence"].to(device)
-
-            pdf = batch["pdf"]
-            pdf = pdf.to(device)
-            batch["pdf"] = pdf
+            if self.model_type == "equivariant":
+                batch["pdf"] = batch["pdf"].to(device)
+                batch["pad_mask"] = batch["pad_mask"].to(device)
         else:
             batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
 
