@@ -127,7 +127,6 @@ class DiffusionWrapper(pl.LightningModule):
 
         matrix_in, atom_species, r, pdf, pad_mask = self.posttransform(samples)
         predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
-        pdf = pdf.cpu().detach().numpy()
 
         self.log("RWP", rwp_metric(predicted_pdf, pdf), prog_bar=True, sync_dist=True)
         self.log("MSE of pdf", mse_metric(predicted_pdf, pdf), prog_bar=True,
