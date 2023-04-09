@@ -1,7 +1,3 @@
-import logging
-from os import path
-import time
-
 import torch
 from tqdm.auto import tqdm
 
@@ -9,7 +5,6 @@ import torch.nn.functional as f
 
 from diffusion_modules.BaseDiffusion import Diffusion
 from utils.stuff import unsqueeze_n
-from utils.plots import save_graph, save_gif
 from utils.plots import save_graph_str_batch
 
 
@@ -91,7 +86,7 @@ class GaussianDiffusion(Diffusion):
         """Sample n examples from the model, with optional labels for conditional sampling.
         The `labels` argument is ignored if the model is not conditional.
         """
-        
+
         # If we are saving output, we need to create a str to log the output
         # in ovito format.
         if log_strs is None:
@@ -163,7 +158,7 @@ class GaussianDiffusion(Diffusion):
 
         return sample_dict
 
-    def loss(self,  prediction, noise, _batch):
+    def loss(self, prediction, noise, _batch):
         """Computes the loss for the diffusion process."""
         # print("loss function devices")
         # print(prediction.device)

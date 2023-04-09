@@ -60,7 +60,8 @@ def calculate_pdf(point_cloud, atom_species):
         pdf (np.array): array of evaluated points of the pdf function of shape (3000,)
     """
     structure = Structure()
-    atom_species = atom_species.int()
+    atom_species = atom_species.int().cpu().numpy()
+    point_cloud = point_cloud.cpu().numpy()
 
     # with mp.Pool() as pool:
     #     for atom in pool.imap(task, zip(atom_species, point_cloud)):
