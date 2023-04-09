@@ -127,7 +127,6 @@ class DiffusionWrapper(pl.LightningModule):
 
         matrix_in, atom_species, r, pdf, pad_mask = self.posttransform(samples)
         predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
-        pdf = pdf.cpu().detach().numpy()
 
         if save_output:
             predicted_pdf.save("predicted_pdf.pt")
