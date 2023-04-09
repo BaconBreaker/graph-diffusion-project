@@ -50,7 +50,7 @@ def mse_metric(predicted_pdf, target_pdf):
     returns:
         mse (torch.Tensor): mean squared error of shape (batch_size,)
     """
-    return np.mean((predicted_pdf - target_pdf) ** 2, dim=1).mean()
+    return np.mean((predicted_pdf - target_pdf.cpu()) ** 2, dim=1).mean()
 
 
 def rwp_metric(predicted_pdf, true_pdf, sigmas=None):
