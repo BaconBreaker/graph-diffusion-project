@@ -28,5 +28,5 @@ python ovito_complete_gif.py --dataset_path ../../graphs_h5/ --run_name eq_sampl
 	--model equivariant --batch_size 1 \
 	--tensors_to_diffuse xyz_atom_species --pad_length 23 --diffusion_timesteps 1000 \
     --device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
-	--t_skips 5 --checkpoint_path "checkpoints/ED_single_sample_v2/epoch=661-val_loss=0.034.ckpt" \
+	--t_skips 200 --checkpoint_path "checkpoints/ED_single_sample_v2/epoch=661-val_loss=0.034.ckpt" \
     --fix_noise --single_sample
