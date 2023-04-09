@@ -111,7 +111,7 @@ class GaussianDiffusion(Diffusion):
 
             # Save the pure noise sample.
             if save_output and post_process is not None:
-                log_strs = save_graph_str_batch(batch_dict, post_process, log_strs)
+                log_strs = save_graph_str_batch(sample_dict, post_process, log_strs)
 
             pbar = tqdm(reversed(range(1, self.noise_steps)),
                         total=self.noise_steps - 1,
@@ -120,7 +120,7 @@ class GaussianDiffusion(Diffusion):
             for i in pbar:
                 sample_dict = self.sample_previous_x(sample_dict, i, model)
                 if save_output and post_process is not None and i % t_skips == 0:
-                    log_strs = save_graph_str_batch(batch_dict, post_process, log_strs)
+                    log_strs = save_graph_str_batch(sample_dict, post_process, log_strs)
 
         model.train()
 
