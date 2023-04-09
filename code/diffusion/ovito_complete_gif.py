@@ -66,18 +66,22 @@ def generate_samples(args):
     logging.info("Starting diffusion process")
     log_strs = diffusion_process_log(ex_batch, posttransform, args.diffusion_timesteps,
                                      args.t_skips, diffusion_model, fixed_noises)
-    logging.info("Diffusion process finished")
-    batch_size = ex_batch[list(ex_batch.keys())[0]].shape[0]
-    log_strs = [""] * batch_size
+    logging.info(f"Diffusion process finished with {len(log_strs[0])} length logs.")
 
     logging.info("Starting reverse diffusion process")
-    diffusion.sample_graphs(ex_batch,
-                            post_process=posttransform,
-                            save_output=True,
-                            noise=fixed_noises,
-                            t_skips=args.t_skips,
-                            log_strs=log_strs)
-    logging.info("Reverse diffusion process finished")
+    log_strs = diffusion.sample_graphs(ex_batch,
+                                       post_process=posttransform,
+                                       save_output=True,
+                                       noise=fixed_noises,
+                                       t_skips=args.t_skips,
+                                       log_strs=log_strs)
+    logging.info(f"Reverse diffusion process finished with {len(log_strs[0])} length logs.")
+
+    logging.info("Saving log file")
+    for i, log in enumerate(log_strs):
+        with open(f"{args.run_name}_sample_{i}.txt", "w") as f:
+            f.write(log)
+    logging.info("Log file saved")
 
 
 def main():

@@ -9,6 +9,7 @@ from sklearn.decomposition import PCA
 from utils.pdf import multidimensional_scaling
 import torch
 
+
 def save_graph(batch_dict, t, run_name, post_process):
     matplotlib.use("Agg")
 
@@ -52,6 +53,7 @@ def save_gif(run_name: str, total_t: int, batch_size: int,
         gif_path = os.path.join(folder_path, f"graph_{n}.gif")
         imageio.mimsave(gif_path, frames, fps=fps)
 
+
 def xyz_to_str(xyz, atom_species=None):
     """
     Write a string in format ovito can read
@@ -63,7 +65,7 @@ def xyz_to_str(xyz, atom_species=None):
     """
     n_atoms = xyz.shape[0]
     if atom_species is None:
-        atom_species = np.array(["C"]*n_atoms).reshape(-1, 1)
+        atom_species = np.array(["C"] * n_atoms).reshape(-1, 1)
     else:
         atom_species = atom_species.numpy()
 
@@ -91,11 +93,14 @@ def xyz_to_str(xyz, atom_species=None):
 
     return s
 
+
 def adj_to_str(adj_matrix, atom_species=None):
     # Convert to point cloud and rotate using PCA
     xyz = multidimensional_scaling(adj_matrix)
     xyz = PCA(n_components=3).fit_transform(xyz)
+
     return xyz_to_str(xyz, atom_species)
+
 
 def save_graph_str_batch(batch_dict, post_process, log_strs):
     # After post-processing all batches have the same structure.
@@ -107,9 +112,12 @@ def save_graph_str_batch(batch_dict, post_process, log_strs):
     for matrix_in, pad_mask, atom_spec in zip(matrices_in, pad_masks, atom_species):
         s = save_graph_str(matrix_in, pad_mask, atom_spec)
         strs.append(s)
+
     assert len(log_strs) == len(strs)
-    log_strs = [a+b for a, b in zip(log_strs, strs)] # Concatenate strings
+    log_strs = [a + b for a, b in zip(log_strs, strs)]  # Concatenate strings
+
     return log_strs
+
 
 def save_graph_str(matrix_in, pad_mask, atom_species=None):
     # Invert pad mask
@@ -122,6 +130,7 @@ def save_graph_str(matrix_in, pad_mask, atom_species=None):
         point_cloud = matrix_in[pad_mask]
         species = atom_species[pad_mask]
         return xyz_to_str(point_cloud, species)
+
 
 def save_to_file(file_name, s):
     with open(file_name, "w") as f:

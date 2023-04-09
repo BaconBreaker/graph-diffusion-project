@@ -118,12 +118,12 @@ class DiffusionWrapper(pl.LightningModule):
             log_strs: list of string logs to append to
         """
         samples, log_strs = self.diffusion_model.sample(self.denoising_fn,
-                                              batch,
-                                              save_output=save_output,
-                                              post_process=post_process,
-                                              noise=noise,
-                                              t_skips=t_skips,
-                                              log_strs=log_strs)
+                                                        batch,
+                                                        save_output=save_output,
+                                                        post_process=post_process,
+                                                        noise=noise,
+                                                        t_skips=t_skips,
+                                                        log_strs=log_strs)
 
         matrix_in, atom_species, r, pdf, pad_mask = self.posttransform(samples)
         predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)

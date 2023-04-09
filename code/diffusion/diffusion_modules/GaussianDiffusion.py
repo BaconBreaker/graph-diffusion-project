@@ -122,12 +122,6 @@ class GaussianDiffusion(Diffusion):
                 if save_output and post_process is not None and i % t_skips == 0:
                     log_strs = save_graph_str_batch(batch_dict, post_process, log_strs)
 
-        # Save the final sample to a file.
-        if save_output and post_process is not None:
-            for i, log in enumerate(log_strs):
-                with open(f"{self.run_name}_sample_{i}.txt", "w") as f:
-                    f.write(log)
-
         model.train()
 
         return sample_dict, log_strs
