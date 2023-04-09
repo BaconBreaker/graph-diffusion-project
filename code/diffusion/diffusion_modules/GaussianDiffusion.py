@@ -130,7 +130,7 @@ class GaussianDiffusion(Diffusion):
         # Save the final sample to a file.
         if save_output and post_process is not None:
             for i, log in enumerate(log_strs):
-                with open(f"{self.run_name}/sample_{i}.txt", "w") as f:
+                with open(f"{self.run_name}_sample_{i}.txt", "w") as f:
                     f.write(log)
 
         model.train()

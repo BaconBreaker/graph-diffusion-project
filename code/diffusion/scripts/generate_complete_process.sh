@@ -1,10 +1,10 @@
 #!/bin/bash
 #The partition is the queue you want to run on. standard is gpu and can be omitted.
 #SBATCH -p gpu --gres=gpu:titanrtx:1
-#SBATCH --job-name=graph_dif_selfatt
+#SBATCH --job-name=gen_process
 #number of independent tasks we are going to start in this script
 #number of cpus we want to allocate for each program
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=4
 #the amount of memory allocated
 #SBATCH --mem=16000M
 #We expect that our program should not run longer than 2 days
@@ -24,9 +24,9 @@ echo "CUDA version:"
 nvcc --version
 
 # --tensors_to_diffuse edge_sequence
-python ovito_complete_gif.py --dataset_path ../../graphs_h5/ --run_name self_attention_checkpoint \
-	--model self_attention --max_epochs 100 --check_val_every_n_epoch 5 --batch_size 1 \
-	--tensors_to_diffuse edge_sequence --pad_length 23 --diffusion_timesteps 1000 --num_workers 8 \
+python ovito_complete_gif.py --dataset_path ../../graphs_h5/ --run_name eq_sample \
+	--model equivariant --batch_size 1 \
+	--tensors_to_diffuse xyz_atom_species --pad_length 23 --diffusion_timesteps 1000 \
     --device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
-	--t_skips 5 --checkpoint_path "checkpoints/conditional_unet_dpp_tests/epoch=834-val_loss=4.572.ckpt" \
+	--t_skips 5 --checkpoint_path "checkpoints/ED_single_sample_v2/epoch=661-val_loss=0.034.ckpt" \
     --fix_noise --single_sample

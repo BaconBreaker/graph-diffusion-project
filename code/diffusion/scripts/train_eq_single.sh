@@ -1,6 +1,6 @@
 #!/bin/bash
 #The partition is the queue you want to run on. standard is gpu and can be omitted.
-#SBATCH -p gpu --gres=gpu:titanrtx:2
+#SBATCH -p gpu --gres=gpu:titanrtx:1
 #SBATCH --job-name=graph_dif_selfatt
 #number of independent tasks we are going to start in this script
 #number of cpus we want to allocate for each program
@@ -24,7 +24,7 @@ echo "CUDA version:"
 # nvcc --version
 # 
 # --tensors_to_diffuse edge_sequence
-python main.py --dataset_path ../../graphs_h5/ --run_name ED_single_sample \
+python main.py --dataset_path ../../graphs_h5/ --run_name ED_single_sample_v2 \
 	--model self_attention --max_epochs 1000 --check_val_every_n_epoch 1 --batch_size 1 \
 	--tensors_to_diffuse xyz_atom_species --pad_length 23 --diffusion_timesteps 1000 --num_workers 4 \
 	--log_every_n_steps 1 --device "cuda" --accelerator "gpu" --devices -1 --strategy "ddp" \
