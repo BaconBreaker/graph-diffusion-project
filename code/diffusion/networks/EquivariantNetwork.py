@@ -6,6 +6,7 @@ Example run: python main.py --model equivariant --dataset_path /home/thomas/grap
 import torch
 import torch.nn as nn
 import math
+import random
 
 import torch.nn.functional as F
 
@@ -56,7 +57,7 @@ class EquivariantNetwork(nn.Module):
         Equivariant network.
         """
         super().__init__()
-        self.features_in = 12  # Atom species (1) + time (1) + pdf conditioning (10)
+        self.features_in = 10  # hard cdode for now
         self.features_out = 1  # Atom species (1)
         self.pad_length = args.pad_length
         self.T = args.diffusion_timesteps
@@ -64,10 +65,10 @@ class EquivariantNetwork(nn.Module):
         self.n_layers = args.equiv_n_layers
 
         self.emb_in = nn.Sequential(
-            nn.Linear(self.features_in, self.hidden_dim // 2),
+            nn.Linear(10, self.hidden_dim // 2),
             nn.ReLU(),
             nn.Dropout(0.1),
-            nn.Linear(self.hidden_dim // 2, self.hidden_dim)
+            nn.Linear(self.hidden_dim // 2, self.hidden_dim // 2)
         )
 
         self.emb_out = nn.Sequential(
@@ -77,13 +78,44 @@ class EquivariantNetwork(nn.Module):
             nn.Linear(self.hidden_dim // 2, self.features_out)
         )
 
-        self.pdf_emb = nn.Linear(3000, 10)
+        self.pdf_emb = nn.Sequential(
+            nn.Linear(3000, 100),
+            nn.GELU(),
+            nn.dropout(0.1),
+            nn.Linear(100, 10),
+            nn.GELU(),
+            nn.dropout(0.1)
+        )
 
-        self.time_emb = GammaNetwork()
+        self.time_emb = nn.Sequential(
+            GammaNetwork(),
+            nn.Linear(1, 10),
+            nn.GELU(),
+            nn.dropout(0.1)
+        )
+
+        self.h_emb = nn.Sequential(
+            nn.Linear(1, 10),
+            nn.GELU(),
+            nn.Linear(10, 10),
+            nn.GELU(),
+            nn.dropout(0.1)
+        )
+
+        # Layer that takes pdf_emb and t_emb and combines them
+        # into scale and shift values
+        self.film_emb = nn.Sequential(
+            nn.Linear(20, 20),
+            nn.GELU(),
+            nn.dropout(0.1),
+            nn.Linear(20, 20),
+            nn.GELU(),
+            nn.dropout(0.1)
+        )
 
         layers = []
         for _ in range(self.n_layers):
-            layers.append(EGCLayer(self.hidden_dim, self.pad_length))
+            layers.append(EGCLayer(self.hidden_dim))
         self.layers = nn.Sequential(*layers)
 
     def pos_encoding(self, t):
@@ -121,13 +153,28 @@ class EquivariantNetwork(nn.Module):
         # Normalize to 0-1 and unsqueeze to (batch_size, 1)
         t = (t / self.T).unsqueeze(-1)
 
+        # Subtact mean to center molecule at origin
+        N = pad_mask.sum(1)
+        mean = torch.sum(x, dim=1, keepdim=True) / N
+        x = (x - mean) * pad_mask
+        print(x.shape, mean.shape, N.shape)
+
         # Embedding in
         t_emb = self.time_emb(t)
         pdf_emb = self.pdf_emb(pdf)
+        h_emb = self.h_emb(h)
+
         t_emb = t_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
-        h = torch.cat([h, t_emb, pdf_emb], dim=-1)
-        h = self.emb_in(h)
+
+        scaleshift = self.film_emb(torch.cat((pdf_emb, t_emb), dim=-1))
+        scale, shift = scaleshift.chunk(2, dim=-1)
+
+        # dropout the conditioning with 10% probability
+        if self.training and random.random() < 0.1:
+            h = h_emb
+        else:
+            h = scale * h_emb + shift
 
         # Loop over layers
         for layer in self.layers:
@@ -166,14 +213,13 @@ class EquivariantNetwork(nn.Module):
 
 
 class EGCLayer(nn.Module):
-    def __init__(self, hidden_dim, pad_length):
+    def __init__(self, hidden_dim):
         """
         EGNN layer as described in appendix B of https://arxiv.org/pdf/2203.17003v2.pdf
         """
         super().__init__()
         self.silu = nn.SiLU()
         self.sigmoid = nn.Sigmoid()
-        self.lnh = nn.LayerNorm([pad_length, hidden_dim])
 
         # Edge operation
         # Input = concat([hi, hj, distance from xi to x2j, distance from xi_0 to xj_0])
@@ -237,9 +283,6 @@ class EGCLayer(nn.Module):
         differences = (x[:, :, None, :] - x[:, None, :, :])
         distances = torch.norm(differences, dim=-1).unsqueeze(-1)
         distances_squarred = distances ** 2
-
-        # Layer norm on node features
-        h = self.lnh(h)
 
         # Cartesian product of all nodes
         idx_pairs_cart = torch.cartesian_prod(torch.arange(h.shape[1]), torch.arange(h.shape[1]))

@@ -25,7 +25,7 @@ def EAGTPretransform(sample_dict):
     # Atom species = -1 if oxygen, 1 if metal
     atom_species[atom_species == 8.0] = -1
     atom_species[atom_species != -1] = 1
-    
+
     # normalize the adjacency matrix by normalization constant 30
     adj_matrix = adj_matrix / 30.0
 
@@ -50,11 +50,11 @@ def EAGTPosttransform(batch_dict):
     atom_species_dis = torch.zeros_like(atom_species, dtype=torch.uint8)
     atom_species_dis[atom_species < 0.0] = 8
     atom_species_dis[~torch.isfinite(atom_species)] = 8
-    
+
     # Set metal type
     for b in range(atom_species_dis.shape[0]):
         atom_species_dis[b][atom_species[b] >= 0.0] = metal_type[b].item()
-    
+
     # Convert adjacency matrix back to original format
     adj_matrix = adj_matrix * 30.0
 
@@ -175,7 +175,7 @@ class EAGTLayer(nn.Module):
         # Final layer norms
         self.ln_e_final = nn.LayerNorm(edge_width)
         self.ln_n_final = nn.LayerNorm(node_width)
-    
+
     def forward(self, nodes, edges):
         """
         Args:
@@ -206,7 +206,7 @@ class EAGTLayer(nn.Module):
         # Last layer norms
         e_hat = self.ln_e_final(e_hat)
         n_hat = self.ln_n_final(n_hat)
-        
+
         # Set diagonal to zero and symmetrize the adjacency matrix
         triu_indices = torch.triu_indices(e_hat.shape[1], e_hat.shape[1], offset=1)
         e_hat[:, triu_indices[1], triu_indices[0]] = e_hat[:, triu_indices[0], triu_indices[1]]
@@ -224,7 +224,7 @@ class EdgeAugmentedSelfAttention(nn.Module):
         self.heads = heads
         self.clip_min = clip_min
         self.clip_max = clip_max
-        
+
         self.q = nn.Linear(node_width, node_width)
         self.k = nn.Linear(node_width, node_width)
         self.v = nn.Linear(node_width, node_width)
@@ -264,7 +264,7 @@ class EdgeAugmentedSelfAttention(nn.Module):
 
         # Apply dropout
         A = self.dropout(A)
-        
+
         # Get attention values
         attn = torch.einsum('blmh, bmdh -> bldh', A, v)
         attn = attn.reshape(nodes.shape[0], nodes.shape[1], self.node_width)

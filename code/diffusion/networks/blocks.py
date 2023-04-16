@@ -126,7 +126,7 @@ class EdgeSelfAttention(nn.Module):
         # print(f"time device: {t.device}")
 
         t = self.time_emb(t)
-        t = t.unsqueeze(1) # (batch_size, 1, channels * 2)
+        t = t.unsqueeze(1)  # (batch_size, 1, channels * 2)
         scale, shift = t.chunk(2, dim=-1)
 
         # Condition input on time
