@@ -157,7 +157,6 @@ class EquivariantNetwork(nn.Module):
         N = pad_mask.sum(1)
         mean = torch.sum(x, dim=1, keepdim=True) / N
         x = (x - mean) * pad_mask
-        print(x.shape, mean.shape, N.shape)
 
         # Embedding in
         t_emb = self.time_emb(t)
@@ -243,6 +242,7 @@ class EGCLayer(nn.Module):
         self.cor3 = nn.Linear(hidden_dim, 1)
 
     def edge_operation(self, h1h2, r, r0):
+        print(h1h2.shape, r.shape, r0.shape)
         inp = torch.cat([h1h2, r, r0], dim=-1)
         inp = self.silu(self.edg1(inp))
         inp = self.silu(self.edg2(inp))
