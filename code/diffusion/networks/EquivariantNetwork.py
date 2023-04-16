@@ -64,12 +64,12 @@ class EquivariantNetwork(nn.Module):
         self.hidden_dim = args.equiv_hidden_dim
         self.n_layers = args.equiv_n_layers
 
-        self.emb_in = nn.Sequential(
-            nn.Linear(10, self.hidden_dim // 2),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(self.hidden_dim // 2, self.hidden_dim // 2)
-        )
+        # self.emb_in = nn.Sequential(
+        #     nn.Linear(self.hidden_dim, self.hidden_dim // 2),
+        #     nn.ReLU(),
+        #     nn.Dropout(0.1),
+        #     nn.Linear(self.hidden_dim // 2, self.hidden_dim // 2)
+        # )
 
         self.emb_out = nn.Sequential(
             nn.Linear(self.hidden_dim, self.hidden_dim // 2),
@@ -82,14 +82,14 @@ class EquivariantNetwork(nn.Module):
             nn.Linear(3000, 100),
             nn.GELU(),
             nn.Dropout(0.1),
-            nn.Linear(100, 10),
+            nn.Linear(100, self.hidden_dim),
             nn.GELU(),
             nn.Dropout(0.1)
         )
 
         self.time_emb = nn.Sequential(
             GammaNetwork(),
-            nn.Linear(1, 10),
+            nn.Linear(1, self.hidden_dim),
             nn.GELU(),
             nn.Dropout(0.1)
         )
@@ -97,7 +97,7 @@ class EquivariantNetwork(nn.Module):
         self.h_emb = nn.Sequential(
             nn.Linear(1, 10),
             nn.GELU(),
-            nn.Linear(10, 10),
+            nn.Linear(10, self.hidden_dim),
             nn.GELU(),
             nn.Dropout(0.1)
         )
@@ -105,10 +105,10 @@ class EquivariantNetwork(nn.Module):
         # Layer that takes pdf_emb and t_emb and combines them
         # into scale and shift values
         self.film_emb = nn.Sequential(
-            nn.Linear(20, 20),
+            nn.Linear(self.hidden_dim * 2, self.hidden_dim * 2),
             nn.GELU(),
             nn.Dropout(0.1),
-            nn.Linear(20, 20),
+            nn.Linear(self.hidden_dim * 2, self.hidden_dim * 2),
             nn.GELU(),
             nn.Dropout(0.1)
         )
@@ -242,7 +242,6 @@ class EGCLayer(nn.Module):
         self.cor3 = nn.Linear(hidden_dim, 1)
 
     def edge_operation(self, h1h2, r, r0):
-        print(h1h2.shape, r.shape, r0.shape)
         inp = torch.cat([h1h2, r, r0], dim=-1)
         inp = self.silu(self.edg1(inp))
         inp = self.silu(self.edg2(inp))
