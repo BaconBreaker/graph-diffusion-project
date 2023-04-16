@@ -81,17 +81,17 @@ class EquivariantNetwork(nn.Module):
         self.pdf_emb = nn.Sequential(
             nn.Linear(3000, 100),
             nn.GELU(),
-            nn.dropout(0.1),
+            nn.Dropout(0.1),
             nn.Linear(100, 10),
             nn.GELU(),
-            nn.dropout(0.1)
+            nn.Dropout(0.1)
         )
 
         self.time_emb = nn.Sequential(
             GammaNetwork(),
             nn.Linear(1, 10),
             nn.GELU(),
-            nn.dropout(0.1)
+            nn.Dropout(0.1)
         )
 
         self.h_emb = nn.Sequential(
@@ -99,7 +99,7 @@ class EquivariantNetwork(nn.Module):
             nn.GELU(),
             nn.Linear(10, 10),
             nn.GELU(),
-            nn.dropout(0.1)
+            nn.Dropout(0.1)
         )
 
         # Layer that takes pdf_emb and t_emb and combines them
@@ -107,10 +107,10 @@ class EquivariantNetwork(nn.Module):
         self.film_emb = nn.Sequential(
             nn.Linear(20, 20),
             nn.GELU(),
-            nn.dropout(0.1),
+            nn.Dropout(0.1),
             nn.Linear(20, 20),
             nn.GELU(),
-            nn.dropout(0.1)
+            nn.Dropout(0.1)
         )
 
         layers = []
