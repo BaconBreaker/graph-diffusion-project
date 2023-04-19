@@ -16,39 +16,28 @@ def equivariant_pretransform(sample_dict):
     Extract positions and atom species from node features individually
     """
     node_features = sample_dict['node_features']
-    atom_species = node_features[:, 0]
-
-    # Save the original atom species
-    sample_dict['metal_type'] = atom_species[atom_species != 8.0][0]
-
-    # Atom species = -1 if oxygen, 1 if metal
-    atom_species[atom_species == 8.0] = -1
-    atom_species[atom_species != -1] = 1
 
     # Coordinates
-    xyz = node_features[:, 4:7] / 5.0
-    sample_dict['xyz_atom_species'] = torch.cat((xyz, atom_species[:, None]), dim=1)
+    xyz = node_features[:, 4:7]
+    normalization_costant = xyz.max()
+    xyz = xyz / normalization_costant
+    sample_dict['xyz'] = xyz
+    sample_dict['normalization_costant'] = normalization_costant
 
     return sample_dict
 
 
 def equivariant_posttransform(batch_dict):
-    xyz_atom_species = batch_dict['xyz_atom_species']
-    atom_species_con = xyz_atom_species[:, :, 3]
-    xyz = xyz_atom_species[:, :, :3] * 5.0
+    xyz = batch_dict['xyz']
     r = batch_dict['r']
     pdf = batch_dict['pdf']
     pad_mask = batch_dict['pad_mask']
-    metal_type = batch_dict['metal_type']
+    normalization_costant = batch_dict['normalization_costant']
+    xyz = xyz * normalization_costant
 
-    atom_species_dis = torch.zeros_like(atom_species_con, dtype=torch.uint8)
-    atom_species_dis[atom_species_con < 0.0] = 8
-    atom_species_dis[~torch.isfinite(atom_species_con)] = 8
+    atom_species = torch.ones(xyz.shape[0], xyz.shape[1], 1).to(xyz.device) * 6  # Carbon
 
-    for b in range(atom_species_dis.shape[0]):
-        atom_species_dis[b][atom_species_con[b] >= 0.0] = metal_type[b].item()
-
-    return xyz, atom_species_dis, r, pdf, pad_mask
+    return xyz, atom_species, r, pdf, pad_mask
 
 
 class EquivariantNetwork(nn.Module):
@@ -136,17 +125,13 @@ class EquivariantNetwork(nn.Module):
                 pad_mask: (batch_size, pad_length) tensor containing a mask for the padding
             t: (batch_size, 1) tensor containing the time
         """
-        xh = batch['xyz_atom_species']
+        x = batch['xyz']
         pdf = batch['pdf']
         pad_mask = batch['pad_mask']
 
         # Flip padding values so 1 means no padding and 0 means padding
         # Also unsqueeze to (batch_size, pad_length, 1) and convert to float
         pad_mask = (~pad_mask).unsqueeze(-1).float()
-
-        # Extract positions (x) and atom species (h)
-        h = xh[:, :, 3].unsqueeze(-1)
-        x = xh[:, :, :3]
         x0 = x.clone()
 
         # Normalize to 0-1 and unsqueeze to (batch_size, 1)
@@ -160,7 +145,7 @@ class EquivariantNetwork(nn.Module):
         # Embedding in
         t_emb = self.time_emb(t)
         pdf_emb = self.pdf_emb(pdf)
-        h_emb = self.h_emb(h)
+        h_emb = self.h_emb(torch.ones_like(t))
 
         t_emb = t_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
@@ -187,9 +172,8 @@ class EquivariantNetwork(nn.Module):
         # Re-pad values before returning
         if pad_mask is not None:
             x = x * pad_mask
-            h = h * pad_mask
 
-        batch['xyz_atom_species'] = torch.cat((x, h), dim=-1)
+        batch['xyz'] = x
         return batch
 
     def pad_noise(self, noise, batch_dict):
