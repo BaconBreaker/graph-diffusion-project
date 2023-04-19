@@ -26,7 +26,7 @@ def equivariant_pretransform(sample_dict):
     atom_species[atom_species != -1] = 1
 
     # Coordinates
-    xyz = node_features[:, 4:7] / 30.0
+    xyz = node_features[:, 4:7] / 5.0
     sample_dict['xyz_atom_species'] = torch.cat((xyz, atom_species[:, None]), dim=1)
 
     return sample_dict
@@ -35,7 +35,7 @@ def equivariant_pretransform(sample_dict):
 def equivariant_posttransform(batch_dict):
     xyz_atom_species = batch_dict['xyz_atom_species']
     atom_species_con = xyz_atom_species[:, :, 3]
-    xyz = xyz_atom_species[:, :, :3] * 30.0
+    xyz = xyz_atom_species[:, :, :3] * 5.0
     r = batch_dict['r']
     pdf = batch_dict['pdf']
     pad_mask = batch_dict['pad_mask']
