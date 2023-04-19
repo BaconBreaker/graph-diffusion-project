@@ -190,7 +190,7 @@ class EquivariantNetwork(nn.Module):
             noise: (batch_size, pad_length, 4) tensor containing the padded noise
         """
         pad_mask = batch_dict['pad_mask']
-        pad_mask = pad_mask.unsqueeze(-1).repeat(1, 1, 4)  # (batch_size, pad_length, 4)
+        pad_mask = pad_mask.unsqueeze(-1).repeat(1, 1, 3)  # (batch_size, pad_length, 3)
         noise[pad_mask] = 0.0
 
         return noise
