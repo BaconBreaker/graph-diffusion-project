@@ -145,7 +145,7 @@ class EquivariantNetwork(nn.Module):
         # Embedding in
         t_emb = self.time_emb(t)
         pdf_emb = self.pdf_emb(pdf)
-        h_emb = self.h_emb(torch.ones_like(t))
+        h_emb = self.h_emb(torch.ones(x.shape[0], 1).to(x.device))
 
         t_emb = t_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
