@@ -57,7 +57,6 @@ class EquivariantNetwork(nn.Module):
         Equivariant network.
         """
         super().__init__()
-        self.features_in = 10  # hard cdode for now
         self.features_out = 1  # Atom species (1)
         self.pad_length = args.pad_length
         self.T = args.diffusion_timesteps
