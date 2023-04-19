@@ -153,6 +153,8 @@ class EquivariantNetwork(nn.Module):
         scaleshift = self.film_emb(torch.cat((pdf_emb, t_emb), dim=-1))
         scale, shift = scaleshift.chunk(2, dim=-1)
 
+        print(scale.shape, shift.shape, h_emb.shape)
+
         # dropout the conditioning with 10% probability
         if self.training and random.random() < 0.1:
             h = h_emb
