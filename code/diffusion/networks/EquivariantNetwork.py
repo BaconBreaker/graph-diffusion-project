@@ -155,7 +155,6 @@ class EquivariantNetwork(nn.Module):
         # Subtact mean to center molecule at origin
         N = pad_mask.sum(1)
         mean = (torch.sum(x, dim=1) / N).unsqueeze(1)
-        print(mean.shape, x.shape, pad_mask.shape, N.shape)
         x = (x - mean) * pad_mask
 
         # Embedding in
