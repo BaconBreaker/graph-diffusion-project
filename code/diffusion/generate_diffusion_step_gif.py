@@ -40,6 +40,8 @@ def generate_gif(args):
     ex_batch = next(iter(train_dl))
     ex_batch = dataloader.transfer_batch_to_device(ex_batch, args.device, 0)
 
+    save_graph(ex_batch, 0, args.run_name, posttransform)
+
     logging.info("Sampling graph.")
     tensors_to_diffuse = diffusion.diffusion_model.tensors_to_diffuse
     fixed_noises = [diffusion.diffusion_model.sample_from_noise_fn(
