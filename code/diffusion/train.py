@@ -4,7 +4,6 @@ Main training functionality for the diffusion model.
 @Author Thomas Christensen and Rasmus Pallisgaard
 """
 import logging
-from pprint import pformat
 
 import pytorch_lightning as pl
 from dataloader import MoleculeDataModule
@@ -12,6 +11,10 @@ from utils.get_config import get_model, get_diffusion
 from callbacks import get_callbacks
 from utils.metrics import get_metrics
 from DiffusionWrapper import DiffusionWrapper
+
+import torch
+torch.autograd.set_detect_anomaly(True)
+
 
 def train(args):
     logging.info("Started training.")

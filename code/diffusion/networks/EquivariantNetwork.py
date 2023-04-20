@@ -6,6 +6,7 @@ Example run: python main.py --model equivariant --dataset_path /home/thomas/grap
 import torch
 import torch.nn as nn
 import math
+import random
 
 import torch.nn.functional as F
 
@@ -15,39 +16,28 @@ def equivariant_pretransform(sample_dict):
     Extract positions and atom species from node features individually
     """
     node_features = sample_dict['node_features']
-    atom_species = node_features[:, 0]
-    
-    # Save the original atom species
-    sample_dict['metal_type'] = atom_species[atom_species != 8.0][0]
-    
-    # Atom species = -1 if oxygen, 1 if metal
-    atom_species[atom_species == 8.0] = -1
-    atom_species[atom_species != -1] = 1
 
     # Coordinates
     xyz = node_features[:, 4:7]
-    sample_dict['xyz_atom_species'] = torch.cat((xyz, atom_species[:, None]), dim=1)
+    normalization_costant = xyz.max()
+    xyz = xyz / normalization_costant
+    sample_dict['xyz'] = xyz
+    sample_dict['normalization_costant'] = normalization_costant
 
     return sample_dict
 
 
 def equivariant_posttransform(batch_dict):
-    xyz_atom_species = batch_dict['xyz_atom_species']
-    atom_species_con = xyz_atom_species[:, :, 3]
-    xyz = xyz_atom_species[:, :, :3]
+    xyz = batch_dict['xyz']
     r = batch_dict['r']
     pdf = batch_dict['pdf']
     pad_mask = batch_dict['pad_mask']
-    metal_type = batch_dict['metal_type']
+    normalization_costant = batch_dict['normalization_costant']
+    xyz = xyz * normalization_costant
 
-    atom_species_dis = torch.zeros_like(atom_species_con, dtype=torch.uint8)
-    atom_species_dis[atom_species_con < 0.0] = 8
-    atom_species_dis[~torch.isfinite(atom_species_con)] = 8
+    atom_species = torch.ones(xyz.shape[0], xyz.shape[1], 1).to(xyz.device) * 6  # Carbon
 
-    for b in range(atom_species_dis.shape[0]):
-        atom_species_dis[b][atom_species_con[b] >= 0.0] = metal_type[b].item()
-
-    return xyz, atom_species_dis, r, pdf, pad_mask
+    return xyz, atom_species, r, pdf, pad_mask
 
 
 class EquivariantNetwork(nn.Module):
@@ -56,19 +46,18 @@ class EquivariantNetwork(nn.Module):
         Equivariant network.
         """
         super().__init__()
-        self.features_in = 12  # Atom species (1) + time (1) + pdf conditioning (10)
         self.features_out = 1  # Atom species (1)
         self.pad_length = args.pad_length
         self.T = args.diffusion_timesteps
         self.hidden_dim = args.equiv_hidden_dim
         self.n_layers = args.equiv_n_layers
 
-        self.emb_in = nn.Sequential(
-            nn.Linear(self.features_in, self.hidden_dim // 2),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(self.hidden_dim // 2, self.hidden_dim)
-        )
+        # self.emb_in = nn.Sequential(
+        #     nn.Linear(self.hidden_dim, self.hidden_dim // 2),
+        #     nn.ReLU(),
+        #     nn.Dropout(0.1),
+        #     nn.Linear(self.hidden_dim // 2, self.hidden_dim // 2)
+        # )
 
         self.emb_out = nn.Sequential(
             nn.Linear(self.hidden_dim, self.hidden_dim // 2),
@@ -77,20 +66,48 @@ class EquivariantNetwork(nn.Module):
             nn.Linear(self.hidden_dim // 2, self.features_out)
         )
 
-        self.pdf_emb = nn.Linear(3000, 10)
+        self.pdf_emb = nn.Sequential(
+            nn.Linear(3000, 100),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(100, self.hidden_dim),
+            nn.GELU(),
+            nn.Dropout(0.1)
+        )
 
-        self.time_emb = GammaNetwork()
+        self.time_emb = nn.Sequential(
+            GammaNetwork(),
+            nn.Linear(1, self.hidden_dim),
+            nn.GELU(),
+            nn.Dropout(0.1)
+        )
+
+        self.h_emb = nn.Sequential(
+            nn.Linear(1, 10),
+            nn.GELU(),
+            nn.Linear(10, self.hidden_dim),
+            nn.GELU(),
+            nn.Dropout(0.1)
+        )
+
+        # Layer that takes pdf_emb and t_emb and combines them
+        # into scale and shift values
+        self.film_emb = nn.Sequential(
+            nn.Linear(self.hidden_dim * 2, self.hidden_dim * 2),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(self.hidden_dim * 2, self.hidden_dim * 2),
+            nn.GELU(),
+            nn.Dropout(0.1)
+        )
 
         layers = []
         for _ in range(self.n_layers):
-            layers.append(EGCLayer(self.hidden_dim, self.pad_length))
+            layers.append(EGCLayer(self.hidden_dim))
         self.layers = nn.Sequential(*layers)
 
     def pos_encoding(self, t):
-        inv_freq = 1.0 / (
-            10000
-            ** (torch.arange(0, 2, 2).float() / 2)
-        )
+        inv_freq = 1.0 / (10000 ** (torch.arange(0, 2, 2).float() / 2))
         pos_enc_a = torch.sin(t.repeat(1, 1) * inv_freq)
         pos_enc_b = torch.cos(t.repeat(1, 1) * inv_freq)
         pos_enc = torch.cat([pos_enc_a, pos_enc_b], dim=-1)
@@ -108,29 +125,39 @@ class EquivariantNetwork(nn.Module):
                 pad_mask: (batch_size, pad_length) tensor containing a mask for the padding
             t: (batch_size, 1) tensor containing the time
         """
-        xh = batch['xyz_atom_species']
+        x = batch['xyz']
         pdf = batch['pdf']
         pad_mask = batch['pad_mask']
 
         # Flip padding values so 1 means no padding and 0 means padding
         # Also unsqueeze to (batch_size, pad_length, 1) and convert to float
         pad_mask = (~pad_mask).unsqueeze(-1).float()
-
-        # Extract positions (x) and atom species (h)
-        h = xh[:, :, 3].unsqueeze(-1)
-        x = xh[:, :, :3]
         x0 = x.clone()
 
         # Normalize to 0-1 and unsqueeze to (batch_size, 1)
         t = (t / self.T).unsqueeze(-1)
 
+        # Subtact mean to center molecule at origin
+        N = pad_mask.sum(1)
+        mean = (torch.sum(x, dim=1) / N).unsqueeze(1)
+        x = (x - mean) * pad_mask
+
         # Embedding in
         t_emb = self.time_emb(t)
         pdf_emb = self.pdf_emb(pdf)
+        h_emb = self.h_emb(torch.ones(x.shape[0], x.shape[1], 1).to(x.device))
+
         t_emb = t_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
         pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
-        h = torch.cat([h, t_emb, pdf_emb], dim=-1)
-        h = self.emb_in(h)
+
+        scaleshift = self.film_emb(torch.cat((pdf_emb, t_emb), dim=-1))
+        scale, shift = scaleshift.chunk(2, dim=-1)
+
+        # dropout the conditioning with 10% probability
+        if self.training and random.random() < 0.1:
+            h = h_emb
+        else:
+            h = scale * h_emb + shift
 
         # Loop over layers
         for layer in self.layers:
@@ -145,11 +172,10 @@ class EquivariantNetwork(nn.Module):
         # Re-pad values before returning
         if pad_mask is not None:
             x = x * pad_mask
-            h = h * pad_mask
 
-        batch['xyz_atom_species'] = torch.cat((x, h), dim=-1)
+        batch['xyz'] = x
         return batch
-    
+
     def pad_noise(self, noise, batch_dict):
         """
         Pads the noise to the correct length
@@ -162,21 +188,20 @@ class EquivariantNetwork(nn.Module):
             noise: (batch_size, pad_length, 4) tensor containing the padded noise
         """
         pad_mask = batch_dict['pad_mask']
-        pad_mask = pad_mask.unsqueeze(-1).repeat(1, 1, 4)  # (batch_size, pad_length, 4)
+        pad_mask = pad_mask.unsqueeze(-1).repeat(1, 1, 3)  # (batch_size, pad_length, 3)
         noise[pad_mask] = 0.0
 
         return noise
 
 
 class EGCLayer(nn.Module):
-    def __init__(self, hidden_dim, pad_length):
+    def __init__(self, hidden_dim):
         """
         EGNN layer as described in appendix B of https://arxiv.org/pdf/2203.17003v2.pdf
         """
         super().__init__()
         self.silu = nn.SiLU()
         self.sigmoid = nn.Sigmoid()
-        self.lnh = nn.LayerNorm([pad_length, hidden_dim])
 
         # Edge operation
         # Input = concat([hi, hj, distance from xi to x2j, distance from xi_0 to xj_0])
@@ -193,7 +218,7 @@ class EGCLayer(nn.Module):
         # Input = concat([hi, aggregated_j m_ij])
         self.node1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.node2 = nn.Linear(hidden_dim, hidden_dim)
-        
+
         # Node coordinate update
         self.cor1 = nn.Linear(hidden_dim * 2 + 2, hidden_dim)
         self.cor2 = nn.Linear(hidden_dim, hidden_dim)
@@ -240,9 +265,6 @@ class EGCLayer(nn.Module):
         differences = (x[:, :, None, :] - x[:, None, :, :])
         distances = torch.norm(differences, dim=-1).unsqueeze(-1)
         distances_squarred = distances ** 2
-        
-        # Layer norm on node features
-        h = self.lnh(h)
 
         # Cartesian product of all nodes
         idx_pairs_cart = torch.cartesian_prod(torch.arange(h.shape[1]), torch.arange(h.shape[1]))
@@ -253,8 +275,8 @@ class EGCLayer(nn.Module):
 
         # Edge inference
         e_matrix = self.edge_inference(m_matrix)
-        diag = torch.eye(e_matrix.shape[1], e_matrix.shape[2]).unsqueeze(0).unsqueeze(-1)
-        e_matrix =  e_matrix * (1 - diag)  # Remove where i == j
+        diag = torch.eye(e_matrix.shape[1]).unsqueeze(0).unsqueeze(-1).to(e_matrix.device)
+        e_matrix = e_matrix * (1 - diag)  # Remove where i == j
 
         # Node update
         h_next = self.node_update(h, torch.mean(e_matrix * m_matrix, dim=-2))
@@ -307,7 +329,7 @@ class GammaNetwork(torch.nn.Module):
 
         # Normalize to [0, 1]
         normalized_gamma = (gamma_tilde_t - gamma_tilde_0) / (
-                gamma_tilde_1 - gamma_tilde_0)
+            gamma_tilde_1 - gamma_tilde_0)
 
         # Rescale to [gamma_0, gamma_1]
         gamma = self.gamma_0 + (self.gamma_1 - self.gamma_0) * normalized_gamma

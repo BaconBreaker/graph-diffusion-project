@@ -6,6 +6,7 @@ Functions for calculating metrics between predicted and target pdfs
 import torch
 from scipy.stats import pearsonr
 from torchmetrics import SignalNoiseRatio, PeakSignalNoiseRatio
+import numpy as np
 
 
 def get_metrics(args):
@@ -27,10 +28,10 @@ def pearson_metric(predicted_pdf, target_pdf):
     """
     Calculate pearson correlation coefficient between predicted and target pdf
     args:
-        predicted_pdf (torch.Tensor): predicted pdf of shape (batch_size, 3000)
-        target_pdf (torch.Tensor): target pdf of shape (batch_size, 3000)
+        predicted_pdf (numpy array): predicted pdf of shape (batch_size, 3000)
+        target_pdf (numpy array): target pdf of shape (batch_size, 3000)
     returns:
-        pearson (torch.Tensor): pearson correlation coefficient of shape (batch_size,)
+        pearson (torch tensor): pearson correlation coefficient of shape (batch_size,)
     """
     pearson = []
     for i in range(predicted_pdf.shape[0]):
@@ -49,7 +50,7 @@ def mse_metric(predicted_pdf, target_pdf):
     returns:
         mse (torch.Tensor): mean squared error of shape (batch_size,)
     """
-    return torch.mean((predicted_pdf - target_pdf) ** 2, dim=1).mean()
+    return torch.mean((predicted_pdf - target_pdf.cpu()) ** 2, dim=1).mean()
 
 
 def rwp_metric(predicted_pdf, true_pdf, sigmas=None):
@@ -62,6 +63,8 @@ def rwp_metric(predicted_pdf, true_pdf, sigmas=None):
     returns:
         rwp (torch.Tensor): RWP metric of shape (batch_size,)
     """
+    predicted_pdf = predicted_pdf.detach().cpu()
+    true_pdf = true_pdf.detach().cpu()
     if sigmas is None:
         sigmas = torch.ones_like(predicted_pdf)
     sigmas_inv = 1 / sigmas

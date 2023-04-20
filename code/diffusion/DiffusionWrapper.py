@@ -74,6 +74,7 @@ class DiffusionWrapper(pl.LightningModule):
 
         do_sample = self.sample_interval > 0
         do_sample = do_sample and (self.current_epoch + 1) % self.sample_interval == 0
+        do_sample = do_sample and batch_idx == 0
         if do_sample:
             self.sample_graphs(batch)
 
@@ -82,17 +83,24 @@ class DiffusionWrapper(pl.LightningModule):
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
-    def sample_graphs(self, batch, post_process=None, skips=1):
+    def sample_graphs(self, batch, post_process=None, save_output=False, noise=None, t_skips=1, log_strs=None):
         """
         Function to sample graphs from the diffusion model and evaluate them
+        args:
+            batch: batch of data to sample from
+            post_process: function to post process the samples
+            save_output: whether to save the output
+            noise: noise to use for sampling
+            t_skips: number of time steps to skip
+            log_strs: list of string logs to append to
         """
-        # self.on_validation_start()
-        samples = self.diffusion_model.sample(self.denoising_fn,
-                                              batch,
-                                              save_output=True,
-                                              post_process=post_process,
-                                              skips=skips)
-        # self.on_validation_end()
+        samples, log_strs = self.diffusion_model.sample(self.denoising_fn,
+                                                        batch,
+                                                        save_output=save_output,
+                                                        post_process=post_process,
+                                                        noise=noise,
+                                                        t_skips=t_skips,
+                                                        log_strs=log_strs)
 
         matrix_in, atom_species, r, pdf, pad_mask = self.posttransform(samples)
         predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
@@ -102,6 +110,8 @@ class DiffusionWrapper(pl.LightningModule):
                  sync_dist=True)
         self.log("Pearson", pearson_metric(predicted_pdf, pdf), prog_bar=True,
                  sync_dist=True)
+
+        return log_strs
 
     def on_fit_start(self):
         self.diffusion_model.set_device(self.device)

@@ -8,8 +8,10 @@ import argparse
 import logging
 from pprint import pformat
 
-import pytorch_lightning as pl
 import torch
+torch.autograd.set_detect_anomaly(True)
+
+import pytorch_lightning as pl
 
 from train import train
 
@@ -44,8 +46,10 @@ def parse_args():
                         help="Number of validation samples to use for training, None means all")
     parser.add_argument("--val_split", type=float, default=0.1,
                         help="Fraction of training data to use for validation")
-    parser.add_argument("--pad_length", type=int, default=512, #Longest over all datasets is 511
+    parser.add_argument("--pad_length", type=int, default=512,  # Longest over all datasets is 511
                         help="Length to pad the graphs to, None means no the script will pad to the max length")
+    parser.add_argument("--single_sample", action="store_true", default=False,
+                        help="Whether to use a single (specific) sample for training")
 
     # ## Model parameters ##
     parser.add_argument("--model", type=str, default="self_attention",
@@ -90,9 +94,9 @@ def parse_args():
                         help='Metrics during training, options are [mse, psnr, snr]')
 
     # ## Equivariant diffusion parameters ##
-    parser.add_argument("--equiv_n_layers", type=int, default=16,
+    parser.add_argument("--equiv_n_layers", type=int, default=5,
                         help="Number of layers in the equivariant diffusion model")
-    parser.add_argument("--equiv_hidden_dim", type=int, default=192,
+    parser.add_argument("--equiv_hidden_dim", type=int, default=10,
                         help="Hidden dimension of the equivariant diffusion model")
 
     # ## Conditional diffusion parameters ##
@@ -103,6 +107,10 @@ def parse_args():
     t_skips_help = "How many t steps to skip when generating images and gifs. " + \
         "Can be used to speed up generation. Only used for gif generation."
     parser.add_argument("--t_skips", type=int, default=1, help=t_skips_help)
+    parser.add_argument("--method", type=str, default="adj_matrix",
+                        help="Method for simple plotting, disregard to set to adj_matrix or xyz")
+    parser.add_argument("--fix_noise", action="store_true",
+                        help="Whether to fix the noise for plotting")
 
     # ## Pytorch Lightning parameters ##
     parser = pl.Trainer.add_argparse_args(parser, use_argument_group=False)

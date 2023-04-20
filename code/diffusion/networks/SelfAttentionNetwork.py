@@ -168,8 +168,7 @@ class SelfAttentionNetwork(nn.Module):
             x = layer(x, t, mask=mask)
 
         x = self.lin_out(x)
-    
+
         batch['edge_sequence'] = x.squeeze(-1)
 
         return batch
-

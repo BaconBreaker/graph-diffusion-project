@@ -13,6 +13,7 @@ from diffpy.srreal.pdfcalculator import DebyePDFCalculator
 
 from mendeleev import element
 import multiprocessing as mp
+# mp.set_start_method('spawn')
 
 
 # Task for parralelization in calculate_pdf
@@ -30,15 +31,22 @@ def multidimensional_scaling(adj_matrix):
     returns:
         point cloud (np.array): point cloud of size (n, 3)
     """
+    # Symmetrise adjecency matrix
+    _adj = torch.zeros_like(adj_matrix)
+    triu_indices = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1], offset=1)
+    _adj[triu_indices[0], triu_indices[1]] = adj_matrix[triu_indices[0], triu_indices[1]]
+    _adj[triu_indices[1], triu_indices[0]] = adj_matrix[triu_indices[0], triu_indices[1]]
+
     mds = MDS(
         n_components=3,
-        metric=False,
+        metric=True,
         max_iter=3000,
         eps=1e-9,
         dissimilarity="precomputed",
-        n_jobs=1
+        n_jobs=-1
     )
-    point_cloud = mds.fit_transform(adj_matrix)
+
+    point_cloud = mds.fit_transform(_adj)
     return point_cloud
 
 
@@ -52,11 +60,15 @@ def calculate_pdf(point_cloud, atom_species):
         pdf (np.array): array of evaluated points of the pdf function of shape (3000,)
     """
     structure = Structure()
-    atom_species = atom_species.int()
+    atom_species = atom_species.int().cpu().numpy()
+    point_cloud = point_cloud.cpu().numpy()
 
-    with mp.Pool() as pool:
-        for atom in pool.imap(task, zip(atom_species, point_cloud)):
-            structure.append(atom)
+    # with mp.Pool() as pool:
+    #     for atom in pool.imap(task, zip(atom_species, point_cloud)):
+    #         structure.append(atom)
+
+    for atom, xyz in zip(atom_species, point_cloud):
+        structure.append(Atom(element(atom.item()).symbol, xyz))
 
     structure.B11 = 0.3  # Keep to 0.3, isotropic vibration on first axis
     structure.B22 = 0.3  # Keep to 0.3, isotropic vibration on second axis
@@ -81,7 +93,7 @@ def calculate_pdf(point_cloud, atom_species):
     pdf = torch.tensor(pdf, dtype=torch.float32)
     pdf /= (torch.max(pdf) + 1e-12)
 
-    return pdf
+    return torch.tensor(pdf, dtype=torch.float32)
 
 
 def calculate_pdf_from_adjecency_matrix(adj_matrix, atom_species):
@@ -93,12 +105,6 @@ def calculate_pdf_from_adjecency_matrix(adj_matrix, atom_species):
     returns:
         pdf (np.array): array of evaluated points of the pdf function of shape (3000,)
     """
-    # Symmetrise adjecency matrix
-    triu_indices = torch.triu_indices(adj_matrix.shape[0], adj_matrix.shape[1], offset=1)
-    diag_indices = torch.arange(0, adj_matrix.shape[0], dtype=torch.long).repeat(2,1)
-    adj_matrix[triu_indices[0], triu_indices[1]] = adj_matrix[triu_indices[1], triu_indices[0]]
-    adj_matrix[diag_indices[0], diag_indices[1]] = 0
-
     point_cloud = multidimensional_scaling(adj_matrix)
     pdf = calculate_pdf(point_cloud, atom_species)
     return pdf
