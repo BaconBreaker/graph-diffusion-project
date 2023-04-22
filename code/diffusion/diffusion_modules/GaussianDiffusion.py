@@ -82,7 +82,8 @@ class GaussianDiffusion(Diffusion):
 
         return x_t, epsilon
 
-    def sample(self, model, batch_dict, save_output=False, post_process=None, noise=None, t_skips=1, log_strs=None):
+    def sample(self, model, batch_dict, save_output=False,
+               post_process=None, noise=None, t_skips=1, log_strs=None):
         """Sample n examples from the model, with optional labels for conditional sampling.
         The `labels` argument is ignored if the model is not conditional.
         """

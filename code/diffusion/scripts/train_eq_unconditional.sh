@@ -24,15 +24,8 @@ echo "CUDA version:"
 # nvcc --version
 # 
 # --tensors_to_diffuse edge_sequence
-python main.py --dataset_path ../../graphs_h5/ --run_name ED_v4 \
+python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name ED_uncond \
 	--model equivariant --max_epochs 10000 --check_val_every_n_epoch 1 --batch_size 64 \
 	--tensors_to_diffuse xyz_atom_species --pad_length 23 --diffusion_timesteps 1000 --num_workers 4 \
 	--log_every_n_steps 1 --device "cuda" --accelerator "gpu" --devices -1 --strategy "ddp" \
-	--disable_carbon_tracker --sample_interval 0 --enable_progress_bar False --single_sample
-
-python ovito_complete_gif.py --dataset_path ../../graphs_h5/ --run_name eq_sample \
-	--model equivariant --batch_size 1 \
-	--tensors_to_diffuse xyz_atom_species --pad_length 23 --diffusion_timesteps 1000 \
-    --device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
-	--t_skips 5 --checkpoint_path "checkpoints/ED_v4/last.ckpt" \
-    --fix_noise --single_sample
+	--disable_carbon_tracker --sample_interval 0 --enable_progress_bar True --single_sample --fast_dev_run
