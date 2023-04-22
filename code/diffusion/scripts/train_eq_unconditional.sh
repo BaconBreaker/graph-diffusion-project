@@ -1,6 +1,6 @@
 #!/bin/bash
 #The partition is the queue you want to run on. standard is gpu and can be omitted.
-#SBATCH -p gpu --gres=gpu:titanrtx:1
+#SBATCH -p gpu --gres=gpu:titanrtx:2
 #SBATCH --job-name=ED_uncond
 #number of independent tasks we are going to start in this script
 #number of cpus we want to allocate for each program
@@ -26,8 +26,8 @@ echo "CUDA version:"
 # --tensors_to_diffuse edge_sequence
 #  --strategy "ddp"
 python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name ED_uncond \
-	--model equivariant --max_epochs 10000 --check_val_every_n_epoch 1 --batch_size 32 \
+	--model equivariant --max_epochs 10000 --check_val_every_n_epoch 1 --batch_size 8 \
 	--tensors_to_diffuse xyz --pad_length 135 --diffusion_timesteps 1000 --num_workers 4 \
-	--log_every_n_steps 1 --device cuda --accelerator gpu --devices -1 \
+	--log_every_n_steps 1 --device cuda --accelerator gpu --devices -1 --strategy dpp \
 	--disable_carbon_tracker --sample_interval 0 --enable_progress_bar True \
 	--equiv_hidden_dim 256 --equiv_n_layers 9 --fast_dev_run
