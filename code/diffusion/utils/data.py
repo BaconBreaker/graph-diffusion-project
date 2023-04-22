@@ -33,8 +33,6 @@ def pad_array(array, max_length, pad_value=0):
         padded_array: padded array
     """
     padded_array = torch.zeros((max_length, *array.shape[1:])) + pad_value
-    print(f"padded_array shape: {padded_array.shape}")
-    print(f"padded_array reformatted shape: {padded_array[:array.shape[0]].shape}")
     padded_array[:array.shape[0]] = array
     return padded_array
 
