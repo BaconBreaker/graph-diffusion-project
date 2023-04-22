@@ -26,7 +26,7 @@ echo "CUDA version:"
 # --tensors_to_diffuse edge_sequence
 #  --strategy "ddp"
 python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name ED_uncond \
-	--model equivariant --max_epochs 10000 --check_val_every_n_epoch 1 --batch_size 64 \
+	--model equivariant --max_epochs 10000 --check_val_every_n_epoch 1 --batch_size 32 \
 	--tensors_to_diffuse xyz --pad_length 135 --diffusion_timesteps 1000 --num_workers 4 \
 	--log_every_n_steps 1 --device cuda --accelerator gpu --devices -1 \
 	--disable_carbon_tracker --sample_interval 0 --enable_progress_bar True \
