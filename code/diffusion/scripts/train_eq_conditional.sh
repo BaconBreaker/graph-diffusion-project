@@ -30,4 +30,4 @@ python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name ED_uncond \
 	--tensors_to_diffuse xyz --pad_length 135 --diffusion_timesteps 1000 --num_workers 4 \
 	--log_every_n_steps 1 --device cuda --accelerator gpu --devices -1 --strategy ddp \
 	--disable_carbon_tracker --sample_interval 0 --enable_progress_bar True \
-	--equiv_hidden_dim 256 --equiv_n_layers 9 --fast_dev_run
+	--equiv_hidden_dim 256 --equiv_n_layers 9 --conditional --fast_dev_run
