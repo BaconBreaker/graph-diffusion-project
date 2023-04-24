@@ -50,6 +50,7 @@ class EquivariantNetwork(nn.Module):
         self.pad_length = args.pad_length
         self.T = args.diffusion_timesteps
         self.hidden_dim = args.equiv_hidden_dim
+        self.pdf_hidden_dim = args.equiv_pdf_hidden_dim
         self.n_layers = args.equiv_n_layers
         self.conditional = args.conditional
 
@@ -68,10 +69,10 @@ class EquivariantNetwork(nn.Module):
         )
 
         self.pdf_emb = nn.Sequential(
-            nn.Linear(3000, 100),
+            nn.Linear(3000, self.pdf_hidden_dim),
             nn.GELU(),
             nn.Dropout(0.1),
-            nn.Linear(100, self.hidden_dim),
+            nn.Linear(self.pdf_hidden_dim, self.hidden_dim),
             nn.GELU(),
             nn.Dropout(0.1)
         )
