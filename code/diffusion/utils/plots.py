@@ -74,9 +74,11 @@ def xyz_to_str(xyz, atom_species=None):
         atom_species = atom_species.astype(np.float32)
 
     # if atom_species is number, convert to atomic symbol
-    if np.issubdtype(atom_species.dtype, np.number):
-        atom_species = np.array(
-            [element(int(atom)).symbol for atom in atom_species]).reshape(-1, 1)
+    # if np.issubdtype(atom_species.dtype, np.number):
+    #     atom_species = np.array(
+    #         [element(int(atom)).symbol for atom in atom_species]).reshape(-1, 1)
+
+    atom_species = np.array(["C"] * n_atoms).reshape(-1, 1)
 
     s = ""
     vals = np.concatenate((atom_species, xyz), axis=1)
