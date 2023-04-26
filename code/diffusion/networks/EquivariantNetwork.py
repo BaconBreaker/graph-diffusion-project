@@ -19,21 +19,16 @@ def equivariant_pretransform(sample_dict):
 
     # Coordinates
     xyz = node_features[:, 4:7]
-    normalization_costant = xyz.max()
-    xyz = xyz / normalization_costant
-    sample_dict['xyz'] = xyz
-    sample_dict['normalization_costant'] = normalization_costant
+    sample_dict['xyz'] = xyz / 5  # Normalize to [-1, 1]
 
     return sample_dict
 
 
 def equivariant_posttransform(batch_dict):
-    xyz = batch_dict['xyz']
+    xyz = batch_dict['xyz'] * 5  # Unnormalize
     r = batch_dict['r']
     pdf = batch_dict['pdf']
     pad_mask = batch_dict['pad_mask']
-    normalization_costant = batch_dict['normalization_costant']
-    xyz = xyz * normalization_costant
 
     atom_species = torch.ones(xyz.shape[0], xyz.shape[1], 1).to(xyz.device) * 6  # Carbon
 
