@@ -96,9 +96,9 @@ def parse_args():
     # ## Equivariant diffusion parameters ##
     parser.add_argument("--equiv_n_layers", type=int, default=5,
                         help="Number of layers in the equivariant diffusion model")
-    parser.add_argument("--equiv_hidden_dim", type=int, default=10,
+    parser.add_argument("--equiv_hidden_dim", type=int, default=256,
                         help="Hidden dimension of the equivariant diffusion model")
-    parser.add_argument("--equiv_pdf_hidden_dim", type=int, default=100,
+    parser.add_argument("--equiv_pdf_hidden_dim", type=int, default=1024,
                         help="Hidden dimension of the equivariant diffusion model pdf \
                             intermediate layer")
 
