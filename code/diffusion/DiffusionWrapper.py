@@ -27,33 +27,15 @@ class DiffusionWrapper(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         torch.cuda.empty_cache()
-        # print(torch.cuda.memory_summary())
-        # print("training")
-        # print("batch")
-        # print(batch)
-        # print("batch size shape")
-        # print(batch["edge_sequence"].shape)
         batch_size = batch['pdf'].shape[0]
         t = self.diffusion_model.sample_time_steps(batch_size)
         noisy_batch, noise = self.diffusion_model.diffuse(batch, t)
-        # print(1)
         prediction = self.denoising_fn(noisy_batch, t)
-        # print(2)
         prediction = prediction
         loss = torch.tensor(0.0).to(self.device)
-        # print("loss at initialization")
-        # print(loss.device)
-        # print(f"len of tensors to diffuse: {len(self.tensors_to_diffuse)}")
         for i, name in enumerate(self.tensors_to_diffuse):
-            # print(f"name of tensor: {name}")
             pred = prediction[name]
             noise_i = noise[i]
-            # print("calc_loss")
-            # print(pred.device)
-            # print(noise_i.device)
-            # print(3)
-
-            # time.sleep(5)
 
             # Check if tthe noise should be padded
             if hasattr(self.denoising_fn, "pad_noise"):
@@ -64,16 +46,11 @@ class DiffusionWrapper(pl.LightningModule):
                 self.log(f"{i}: {metric_name}", metric_fn(pred, noise_i),
                          prog_bar=True, sync_dist=True)
 
-        # print("end of loop")
-        # print("logged loss")
-        # print(loss)
-
         self.log("loss", loss, sync_dist=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         torch.cuda.empty_cache()
-        # print("validation")
         batch_size = batch['pdf'].shape[0]
         t = self.diffusion_model.sample_time_steps(batch_size)
         noisy_batch, noise = self.diffusion_model.diffuse(batch, t)

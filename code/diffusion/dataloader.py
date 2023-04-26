@@ -4,21 +4,19 @@ function to get the dataloader given args
 
 @Author Thomas Christensen and Rasmus Pallisgaard
 """
+import glob
+from os import path
+
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader, Dataset
-
-from sklearn.model_selection import train_test_split
 from scipy.spatial.distance import pdist
-
-import glob
-
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader, Dataset
 from utils.data import load_structure, pad_array  # make_adjecency_matrix
 from utils.graph_transformer_utils import MoleculeDatasetInfo
 
-
 # Set path to single molecule for debugging
-singe_sample_name = "graph_AntiFlourite_Ra2O_r5.h5"
+single_sample_name = "graph_AntiFlourite_Ra2O_r5.h5"
 
 
 class MoleculeDataset(Dataset):
@@ -126,8 +124,8 @@ class MoleculeDataModule(pl.LightningDataModule):
 
         # If overfitting on single sample, set sample paths to single sample
         if self.single_sample:
-            self.train_sample_paths = [self.dataset_path + "/" + singe_sample_name] * 200
-            self.val_sample_paths = [self.dataset_path + "/" + singe_sample_name] * 50
+            self.train_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 200
+            self.val_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 50
 
     # def prepare_data(self):
     #     """

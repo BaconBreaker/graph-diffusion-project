@@ -45,7 +45,9 @@ class EquivariantNetwork(nn.Module):
         self.pad_length = args.pad_length
         self.T = args.diffusion_timesteps
         self.hidden_dim = args.equiv_hidden_dim
+        self.pdf_hidden_dim = args.equiv_pdf_hidden_dim
         self.n_layers = args.equiv_n_layers
+        self.conditional = args.conditional
 
         # self.emb_in = nn.Sequential(
         #     nn.Linear(self.hidden_dim, self.hidden_dim // 2),
@@ -62,10 +64,10 @@ class EquivariantNetwork(nn.Module):
         )
 
         self.pdf_emb = nn.Sequential(
-            nn.Linear(3000, 100),
+            nn.Linear(3000, self.pdf_hidden_dim),
             nn.GELU(),
             nn.Dropout(0.1),
-            nn.Linear(100, self.hidden_dim),
+            nn.Linear(self.pdf_hidden_dim, self.hidden_dim),
             nn.GELU(),
             nn.Dropout(0.1)
         )
@@ -139,12 +141,16 @@ class EquivariantNetwork(nn.Module):
 
         # Embedding in
         t_emb = self.time_emb(t)
-        pdf_emb = self.pdf_emb(pdf)
-        h_emb = self.h_emb(torch.ones(x.shape[0], x.shape[1], 1).to(x.device))
-
         t_emb = t_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
-        pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
+        h_emb = self.h_emb(torch.ones(x.shape[0], x.shape[1], 1).to(x.device))
+        # Embedding for pdf if we want to condition on it
+        if self.conditional:
+            pdf_emb = self.pdf_emb(pdf)
+            pdf_emb = pdf_emb.unsqueeze(1).repeat(1, self.pad_length, 1)
+        else:
+            pdf_emb = torch.zeros_like(t_emb)
 
+        # Scale shift conditioning embedding
         scaleshift = self.film_emb(torch.cat((pdf_emb, t_emb), dim=-1))
         scale, shift = scaleshift.chunk(2, dim=-1)
 

@@ -19,7 +19,7 @@ def save_graph(batch_dict, t, run_name, post_process):
     # After post-processing all batches have the same structure.
     post_batch = post_process(batch_dict)
 
-    adjacency_matrices = post_batch[0].cpu().detach().numpy()
+    adjacency_matrices = post_batch[0].detach().cpu().numpy()
 
     for n, adjacency_matrix in enumerate(adjacency_matrices):
         folder_path = os.path.join("plots", run_name)

@@ -68,6 +68,7 @@ def get_checkpoint_callback(args):
         save_top_k=3,
         save_last=True,
         monitor="val_loss",
-        mode="min"
+        mode="min",
+        save_weights_only=True
     )
     return checkpoint_callback

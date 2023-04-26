@@ -57,8 +57,8 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate to use for training")
     parser.add_argument("--num_classes", type=int, default=None,
                         help="Number of classes to use for the UNET.")
-    parser.add_argument("--checkpoint_path", type=str, default=None,
-                        help="checkpoint path. Will randomly initialise if None.")
+    # parser.add_argument("--checkpoint_path", type=str, default=None,
+    #                     help="checkpoint path. Will randomly initialise if None.")
 
     # ## Noise/Diffusion parameters ##
     parser.add_argument("--diffusion", type=str, default="gaussian",
@@ -98,6 +98,9 @@ def parse_args():
                         help="Number of layers in the equivariant diffusion model")
     parser.add_argument("--equiv_hidden_dim", type=int, default=10,
                         help="Hidden dimension of the equivariant diffusion model")
+    parser.add_argument("--equiv_pdf_hidden_dim", type=int, default=100,
+                        help="Hidden dimension of the equivariant diffusion model pdf \
+                            intermediate layer")
 
     # ## Conditional diffusion parameters ##
     parser.add_argument("--conditional", action="store_true",

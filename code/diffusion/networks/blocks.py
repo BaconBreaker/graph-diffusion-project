@@ -121,9 +121,7 @@ class EdgeSelfAttention(nn.Module):
         """
         Forward function, takes in a tensor of shape (batch_size, n, channels)
         """
-        # print(f"time device: {t.device}")
         t = t.to(self.device)
-        # print(f"time device: {t.device}")
 
         t = self.time_emb(t)
         t = t.unsqueeze(1)  # (batch_size, 1, channels * 2)
