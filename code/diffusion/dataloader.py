@@ -180,7 +180,6 @@ class MoleculeDataModule(pl.LightningDataModule):
             if self.model_type == "equivariant":
                 batch["pdf"] = batch["pdf"].to(device)
                 batch["pad_mask"] = batch["pad_mask"].to(device)
-                batch["normalization_costant"] = batch["normalization_costant"].to(device)
         else:
             batch = super().transfer_batch_to_device(batch, device, dataloader_idx)
 
