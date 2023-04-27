@@ -72,9 +72,8 @@ class MoleculeDataset(Dataset):
             'pad_mask': pad_mask}
 
         if self.transform is not None:
-            return self.transform(sample_dict)
-        else:
-            return sample_dict
+            sample_dict = self.transform(sample_dict)
+        return sample_dict
 
 
 class MoleculeDataModule(pl.LightningDataModule):
