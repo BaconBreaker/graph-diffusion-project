@@ -407,7 +407,7 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
         Normalization: 'sum' or 'mean'.
     """
     result_shape = (num_segments, data.size(1))
-    result = data.new_full(result_shape, 0)  # Init empty result tensor.
+    result = data.new_full(result_shape, 0, device=data.device)  # Init empty result tensor.
     segment_ids = segment_ids.unsqueeze(-1).expand(-1, data.size(1))
     result.scatter_add_(0, segment_ids, data)
     result = result / 100  # Normalization factor
