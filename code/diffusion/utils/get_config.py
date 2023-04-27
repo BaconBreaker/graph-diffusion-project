@@ -24,6 +24,10 @@ from networks.EdgeAugmentedTransformer import (
     EAGTPosttransform
 )
 
+from networks.EquivariantNetwork_new import EquivariantNetwork as EquivariantNetwork_new
+from networks.EquivariantNetwork_new import equivariant_posttransform as equivariant_posttransform_new
+from networks.EquivariantNetwork_new import equivariant_pretransform as equivariant_pretransform_new
+
 
 def get_model(args):
     """
@@ -51,6 +55,10 @@ def get_model(args):
         model = EdgeAugmentedGraphTransformer(args)
         pretransform = EAGTPretransform
         posttransform = EAGTPosttransform
+    elif args.model == "eq_new":
+        model = EquivariantNetwork_new(args)
+        pretransform = equivariant_pretransform_new
+        posttransform = equivariant_posttransform_new
     # elif args.model == "digress":
     #     model = None
     #     pretransform = digress_pretransform
