@@ -19,13 +19,13 @@ def equivariant_pretransform(sample_dict):
 
     # Coordinates
     xyz = node_features[:, 4:7]
-    sample_dict['xyz'] = xyz / 5  # Normalize to [-1, 1]
+    sample_dict['xyz'] = xyz
 
     return sample_dict
 
 
 def equivariant_posttransform(batch_dict):
-    xyz = batch_dict['xyz'] * 5  # Unnormalize
+    xyz = batch_dict['xyz']
     r = batch_dict['r']
     pdf = batch_dict['pdf']
     pad_mask = batch_dict['pad_mask']
@@ -280,14 +280,15 @@ class EGCLayer(nn.Module):
         e_matrix = e_matrix * (1 - diag)  # Remove where i == j
 
         # Node update
-        h_next = self.node_update(h, torch.mean(e_matrix * m_matrix, dim=-2))
+        # m_matrix shape = (batch_size, pad_length, pad_length, hidden_dim)
+        h_next = self.node_update(h, torch.sum(e_matrix * m_matrix, dim=2) / 100)
 
         # Coordinate update
         cor_weight = self.coordinate_update(h_cart, distances_squarred, org_distances_squarred)
         cor_shift = differences / (distances + 1)
         cor_shift_weighted = cor_weight * cor_shift
         cor_shift_weighted = cor_shift_weighted * (1 - diag)  # Remove where i == j
-        cor_update = torch.mean(cor_shift_weighted, dim=-2)
+        cor_update = torch.sum(cor_shift_weighted, dim=2) / 100
         x_next = x + cor_update
 
         # Apply pad mask
