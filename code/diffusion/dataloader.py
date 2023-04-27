@@ -72,9 +72,8 @@ class MoleculeDataset(Dataset):
             'pad_mask': pad_mask}
 
         if self.transform is not None:
-            return self.transform(sample_dict)
-        else:
-            return sample_dict
+            sample_dict = self.transform(sample_dict)
+        return sample_dict
 
 
 class MoleculeDataModule(pl.LightningDataModule):
@@ -126,29 +125,6 @@ class MoleculeDataModule(pl.LightningDataModule):
         if self.single_sample:
             self.train_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 200
             self.val_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 50
-
-    # def prepare_data(self):
-    #     """
-    #     Prepare data for training and testing, only called once on 1 process
-    #     """
-    #     # Collect sample paths and split them into train and val
-    #     all_sample_paths = glob.glob(self.dataset_path + "/*.h5")
-    #     if len(all_sample_paths) == 0:
-    #         raise ValueError(f"No samples found in {self.dataset_path}")
-    #     train_sample_paths, val_sample_paths = train_test_split(
-    #         all_sample_paths, test_size=self.val_split, random_state=42)
-
-    #     # Set number of samples to use
-    #     if self.num_train_samples is None:
-    #         self.num_train_samples = len(train_sample_paths)
-    #     if self.num_val_samples is None:
-    #         self.num_val_samples = len(val_sample_paths)
-    #     num_train = min(self.num_train_samples, len(train_sample_paths))
-    #     num_val = min(self.num_val_samples, len(val_sample_paths))
-
-    #     # Set sample paths to use
-    #     self.train_sample_paths = train_sample_paths[:num_train]
-    #     self.val_sample_paths = val_sample_paths[:num_val]
 
     def setup(self, stage=None):
         self.pre_setup()
