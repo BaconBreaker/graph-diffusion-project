@@ -31,7 +31,7 @@ python main.py --dataset_path ../../graphs_h5/ --run_name ED_new_v1 \
 	--disable_carbon_tracker --sample_interval 0 --enable_progress_bar True --single_sample
 
 python ovito_complete_gif.py --dataset_path ../../graphs_h5/ --run_name eq_sample \
-	--model equivariant --batch_size 1 \
+	--model eq_new --batch_size 1 \
 	--tensors_to_diffuse xyz --pad_length 23 --diffusion_timesteps 1000 \
     --device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
 	--t_skips 5 --checkpoint_path "checkpoints/ED_new_v1/last.ckpt" \
