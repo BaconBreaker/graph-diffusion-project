@@ -406,10 +406,10 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
     """Custom PyTorch op to replicate TensorFlow's `unsorted_segment_sum`.
         Normalization: 'sum' or 'mean'.
     """
+    segment_ids = segment_ids.to(data.device)
     result_shape = (num_segments, data.size(1))
     result = data.new_full(result_shape, 0, device=data.device)  # Init empty result tensor.
     segment_ids = segment_ids.unsqueeze(-1).expand(-1, data.size(1))
-    print(result.device, segment_ids.device, data.device)
     result.scatter_add_(0, segment_ids, data)
     result = result / 100  # Normalization factor
 
