@@ -186,6 +186,7 @@ class EquivariantNetwork(nn.Module):
 
         # Remove mean
         N = pad_mask.sum(1)
+        print(N.device, pad_mask.device, vel.device)
         mean = (torch.sum(vel, dim=1) / N).unsqueeze(1)
         vel = (vel - mean) * pad_mask
 
