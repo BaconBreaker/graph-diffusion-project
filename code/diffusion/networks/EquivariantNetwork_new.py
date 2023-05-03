@@ -119,6 +119,8 @@ class EquivariantNetwork(nn.Module):
         x = batch['xyz']
         pdf = batch['pdf']
         pad_mask = batch['pad_mask']
+        pad_mask = pad_mask.to(x.device)
+        pdf = pdf.to(x.device)
 
         # Flip padding values so 1 means no padding and 0 means padding
         # Also unsqueeze to (batch_size, pad_length, 1) and convert to float
@@ -130,7 +132,6 @@ class EquivariantNetwork(nn.Module):
 
         # Subtact mean to center molecule at origin
         N = pad_mask.sum(1)
-        print(N.device, pad_mask.device, x.device)
         mean = (torch.sum(x, dim=1) / N).unsqueeze(1)
         x = (x - mean) * pad_mask
 
