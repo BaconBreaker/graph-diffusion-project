@@ -8,13 +8,6 @@ from utils.stuff import unsqueeze_n
 from utils.plots import save_graph_str_batch
 
 
-def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
-    res = 1 / torch.sqrt(alpha + 1e-5) \
-        * (x_t - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise) \
-        + torch.sqrt(beta) * noise
-    return res
-
-
 def generate_gaussian_noise(n, shape):
     return torch.randn((n, *shape))
 
@@ -30,13 +23,18 @@ def image_sample_post_process(x):
     x = (x * 255).type(torch.uint8)
     return x
 
+def x_t_sub_from_noise(alpha, alpha_hat, beta, noise, predicted_noise, x_t):
+    res = (x_t - ((1 - alpha) / (torch.sqrt(1 - alpha_hat))) * predicted_noise)
+    res /= torch.sqrt(alpha + 1e-5)
+    std = torch.sqrt(beta) * noise
+    return res + std
 
 def x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, _beta, noise, x_0, x_t):
     """Computes x_{t-1} from x_0, x_t given, along with alpha, alpha_hat and beta."""
     mu_part1 = torch.sqrt(alpha) * (1 - alpha_hat) * x_t
     mu_part2 = torch.sqrt(alpha_hat_sub_1) * (1 - alpha) * x_0
     mu = (mu_part1 + mu_part2) \
-        / 1 - alpha_hat
+        / (1 - alpha_hat)
     variance = ((1 - alpha) * (1 - alpha_hat_sub_1)) / (1 - alpha_hat)
     return mu + torch.sqrt(variance) * noise
 
@@ -73,7 +71,9 @@ class GaussianDiffusion(Diffusion):
         """Computes the diffusion process. Returns x_t and epsilon_t."""
         x_n_dims = len(x.shape[1:])
         sqrt_alpha_hat = unsqueeze_n(torch.sqrt(self.alpha_hat[t]), x_n_dims)
-        sqrt_one_minus_alpha_hat = unsqueeze_n(torch.sqrt(1 - self.alpha_hat[t]), x_n_dims)
+        sqrt_one_minus_alpha_hat = unsqueeze_n(torch.sqrt(1 - self.alpha_hat[t]),
+                                               x_n_dims)
+
         if noise is None:
             epsilon = self.sample_from_noise_fn(x.shape)
         else:
@@ -147,7 +147,8 @@ class GaussianDiffusion(Diffusion):
             if self.model_target == "noise":
                 x = x_t_sub_from_noise(alpha, alpha_hat, beta, noise, pred, x)
             else:
-                x = x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1, beta, noise, pred, x)
+                x = x_t_sub_from_x0(alpha, alpha_hat, alpha_hat_sub_1,
+                                    beta, noise, pred, x)
 
             sample_dict[name] = x
 
