@@ -317,7 +317,7 @@ class EQUpdate(nn.Module):
     def forward(self, h, x, edges, coord_diff, distances, distance_org):
         row, col = edges
         # trans = coord_diff * self.coordinate_update(h[row], h[col], distances, distance_org)
-        trans = coord_diff * F.tanh(self.coordinate_update(h[row], h[col], distances, distance_org)) * self.coord_range
+        trans = coord_diff * torch.tanh(self.coordinate_update(h[row], h[col], distances, distance_org)) * self.coord_range
         agg = unsorted_segment_sum(trans, row, x.size(0))
 
         x = x + agg
