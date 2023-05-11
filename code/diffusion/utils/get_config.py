@@ -65,7 +65,7 @@ def get_model(args):
     #     posttransform = None
     else:
         raise ValueError(f"Model {args.model} not implemented")
-    model = model.to(device)
+    # model = model.to(device)
     return model, pretransform, posttransform
 
 
