@@ -54,7 +54,7 @@ def parse_args():
     # ## Model parameters ##
     parser.add_argument("--model", type=str, default="self_attention",
                         help="Model to use for training, options: self_attention, conditional_unet")
-    parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate to use for training")
+    parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate to use for training")
     parser.add_argument("--num_classes", type=int, default=None,
                         help="Number of classes to use for the UNET.")
     parser.add_argument("--checkpoint_path", type=str, default=None,
@@ -71,7 +71,7 @@ def parse_args():
     parser.add_argument("--n_values", type=int, default=7,
                         help="Number of values each categorical variable can take. \
                             Only for uniform categorical noise")
-    parser.add_argument("--diffusion_timesteps", type=int, default=100,
+    parser.add_argument("--diffusion_timesteps", type=int, default=10000,
                         help="Number of diffusion timesteps to use")
     parser.add_argument("--noise_schedule", type=str, default="cosine",
                         help="Noise schedule to use, options: linear, cosine")
@@ -94,9 +94,9 @@ def parse_args():
                         help='Metrics during training, options are [mse, psnr, snr]')
 
     # ## Equivariant diffusion parameters ##
-    parser.add_argument("--equiv_n_layers", type=int, default=5,
+    parser.add_argument("--equiv_n_layers", type=int, default=3,  
                         help="Number of layers in the equivariant diffusion model")
-    parser.add_argument("--equiv_hidden_dim", type=int, default=256,
+    parser.add_argument("--equiv_hidden_dim", type=int, default=16,
                         help="Hidden dimension of the equivariant diffusion model")
     parser.add_argument("--equiv_pdf_hidden_dim", type=int, default=100,
                         help="Hidden dimension of the equivariant diffusion model pdf \

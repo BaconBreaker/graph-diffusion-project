@@ -236,7 +236,7 @@ class EquivariantNetwork(nn.Module):
 
 
 class EQLayer(nn.Module):
-    def __init__(self, hidden_dim, n_layers=3):
+    def __init__(self, hidden_dim, n_layers=1):
         super(EQLayer, self).__init__()
 
         self.gcls = nn.ModuleList([GCL(hidden_dim) for _ in range(n_layers)])
@@ -314,7 +314,9 @@ class EQUpdate(nn.Module):
 
     def forward(self, h, x, edges, coord_diff, distances, distance_org):
         row, col = edges
-        trans = coord_diff * self.coordinate_update(h[row], h[col], distances, distance_org)
+        # trans = coord_diff * self.coordinate_update(h[row], h[col], distances, distance_org)
+        # coord range is manually set to 12 here
+        trans = coord_diff * F.tanh(self.coordinate_update(h[row], h[col], distances, distance_org)) * 12
         agg = unsorted_segment_sum(trans, row, x.size(0))
 
         x = x + agg
@@ -413,6 +415,6 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
     result = data.new_full(result_shape, 0, device=data.device)  # Init empty result tensor.
     segment_ids = segment_ids.unsqueeze(-1).expand(-1, data.size(1))
     result.scatter_add_(0, segment_ids, data)
-    result = result / 100  # Normalization factor
+    result = result / 100  # Normalization factor ???
 
     return result
