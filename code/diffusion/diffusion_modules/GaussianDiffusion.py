@@ -155,5 +155,4 @@ class GaussianDiffusion(Diffusion):
 
     def loss(self, prediction, noise, _batch):
         """Computes the loss for the diffusion process."""
-        return f.mse_loss(prediction, noise, reduction="sum")
-
+        return f.mse_loss(prediction, noise)

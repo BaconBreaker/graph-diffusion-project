@@ -5,7 +5,9 @@ from dataloader import MoleculeDataModule
 from utils.metrics import get_metrics
 from DiffusionWrapper import DiffusionWrapper
 from tqdm.auto import tqdm
-from utils.plots import save_graph_str_batch
+from utils.plots import save_graph_str_batch, make_histograms
+import os
+import torch
 
 
 def diffusion_process_log(batch_dict, posttransform, T, t_skips, diffusion_model, fixed_noises):
@@ -77,11 +79,33 @@ def generate_samples(args):
                                        log_strs=log_strs)
     logging.info(f"Reverse diffusion process finished with {len(log_strs[0])} length logs.")
 
+    logging.info("Making sample dirs")
+    for i in range(len(log_strs)):
+        os.makedirs(f"{args.run_name}_sample_{i}", exist_ok=True)
+
+    logging.info("Making histograms")
+    for i in range(len(log_strs)):
+        log = log_strs[i]
+        size = int(log[0].strip()) + 2  # +2 for the header lines
+        n_samples = len(log) // size
+        # Make position tensor
+        mols = []
+        for i in range(n_samples):
+            atoms = log[i * size:(i + 1) * size]  # Fetch the lines corresponding to the atoms
+            atoms = atoms[2:]  # Remove header
+            mol = torch.tensor([atom.split()[1:] for atom in atoms], dtype=torch.float32)  # Convert positions to tensor
+            mols.append(mol)
+        mols = torch.stack(mols)
+
+        # Make histogram
+        make_histograms(mols, f"{args.run_name}_sample_{i}/")
+
     logging.info("Saving log file")
     for i, log in enumerate(log_strs):
-        with open(f"{args.run_name}_sample_{i}.txt", "w") as f:
+        with open(f"{args.run_name}_sample_{i}/sample.txt", "w") as f:
             f.write(log)
-    logging.info("Log file saved")
+
+    logging.info("Completed saving")
 
 
 def main():

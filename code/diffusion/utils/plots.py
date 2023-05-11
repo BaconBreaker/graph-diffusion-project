@@ -8,6 +8,9 @@ from mendeleev import element
 from sklearn.decomposition import PCA
 from utils.pdf import multidimensional_scaling
 import torch
+from copy import copy
+import numpy.matlib
+from matplotlib.colors import LogNorm
 
 
 def save_graph(batch_dict, t, run_name, post_process):
@@ -137,3 +140,72 @@ def save_graph_str(matrix_in, pad_mask, atom_species=None):
 def save_to_file(file_name, s):
     with open(file_name, "w") as f:
         f.write(s)
+
+
+def make_histograms(positions, save_path):
+    """
+    Funciton to make histograms of positions and distances between atoms
+    args:
+        positions: torch.tensor of shape (frames, n_atoms, 3)
+        save_path: str, path to save the histograms
+    """
+    make_histogram_single(positions, save_path + "positions_hist", plot_positions=True)
+    make_histogram_single(positions, save_path + "distances_hist", plot_positions=False)
+
+
+def make_histogram_single(positions, save_path, plot_positions=True):
+    """
+    Function to make a histogram of positions or distances between atoms
+    args:
+        positions: torch.tensor of shape (frames, n_atoms, 3)
+        save_path: str, path to save the histogram
+        plot_positions: bool, if True plot positions, else plot distances
+    """
+    fig, axes = plt.subplots(nrows=3, figsize=(6, 8), layout='constrained')
+    if plot_positions:
+        fig.suptitle("position value histograms over time")
+        axes[1].set_ylabel("position values")
+        axes[0].set_ylabel("position values")
+        axes[2].set_ylabel("position values")
+        x = np.arange(positions.shape[0])
+        Y = positions.reshape(positions.shape[0], -1).T
+        Y = np.nan_to_num(Y)
+    else:
+        fig.suptitle("distance histograms over time")
+        axes[1].set_ylabel("distances")
+        axes[0].set_ylabel("distances")
+        axes[2].set_ylabel("distances")
+        x = np.arange(positions.shape[0])
+        Y = torch.cdist(positions, positions, p=2).reshape(positions.shape[0], -1).T
+        Y = np.nan_to_num(Y)
+
+    axes[0].plot(x, Y.T, color="C0", alpha=0.1)
+    axes[0].set_title("Line plot with alpha")
+    axes[0].set_xlabel("frames")
+
+    num_fine = positions.shape[0]
+    num_series = Y.shape[0]
+    x_fine = np.linspace(x.min(), x.max(), num_fine)
+    y_fine = np.empty((num_series, num_fine), dtype=float)
+    for i in range(num_series):
+        y_fine[i, :] = np.interp(x_fine, x, Y[i, :])
+    y_fine = y_fine.flatten()
+    x_fine = np.matlib.repmat(x_fine, num_series, 1).flatten()
+
+    cmap = copy(plt.cm.plasma)
+    cmap.set_bad(cmap(0))
+    h, xedges, yedges = np.histogram2d(x_fine, y_fine, bins=[400, 100])
+    pcm = axes[1].pcolormesh(xedges, yedges, h.T, cmap=cmap,
+                             norm=LogNorm(vmax=1.5e2), rasterized=True)
+    fig.colorbar(pcm, ax=axes[1], label="# points", pad=0)
+    axes[1].set_title("2d histogram and log color scale")
+    axes[1].set_xlabel("frames")
+
+    # Same data but on linear color scale
+    pcm = axes[2].pcolormesh(xedges, yedges, h.T, cmap=cmap,
+                             vmax=1.5e2, rasterized=True)
+    fig.colorbar(pcm, ax=axes[2], label="# points", pad=0)
+    axes[2].set_title("2d histogram and linear color scale")
+    axes[2].set_xlabel("frames")
+
+    plt.savefig(save_path + ".png", dpi=300, bbox_inches='tight')
