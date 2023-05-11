@@ -94,7 +94,7 @@ class EquivariantNetwork(nn.Module):
 
         layers = []
         for _ in range(self.n_layers):
-            layers.append(EQLayer(self.hidden_dim))
+            layers.append(EQLayer(self.hidden_dim, self.n_layers))
         self.layers = nn.Sequential(*layers)
 
     def pos_encoding(self, t):
@@ -236,11 +236,11 @@ class EquivariantNetwork(nn.Module):
 
 
 class EQLayer(nn.Module):
-    def __init__(self, hidden_dim, n_layers=1):
+    def __init__(self, hidden_dim, n_total_layers, n_layers=1):
         super(EQLayer, self).__init__()
 
         self.gcls = nn.ModuleList([GCL(hidden_dim) for _ in range(n_layers)])
-        self.coord_update = EQUpdate(hidden_dim)
+        self.coord_update = EQUpdate(hidden_dim, n_total_layers)
 
     def forward(self, h, x, edges, distances_org):  # TODO: support masking
         distances, coord_diff = coord2diff(x, edges)
@@ -295,9 +295,11 @@ class GCL(nn.Module):
 
 
 class EQUpdate(nn.Module):
-    def __init__(self, hidden_dim):
+    def __init__(self, hidden_dim, n_total_layers):
         super(EQUpdate, self).__init__()
         self.hidden_dim = hidden_dim
+        # coord range is manually set to 12 here
+        self.coord_range = 12 / n_total_layers
 
         self.cor1 = nn.Linear(hidden_dim * 2 + 2, hidden_dim)
         self.cor2 = nn.Linear(hidden_dim, hidden_dim)
@@ -315,8 +317,7 @@ class EQUpdate(nn.Module):
     def forward(self, h, x, edges, coord_diff, distances, distance_org):
         row, col = edges
         # trans = coord_diff * self.coordinate_update(h[row], h[col], distances, distance_org)
-        # coord range is manually set to 12 here
-        trans = coord_diff * F.tanh(self.coordinate_update(h[row], h[col], distances, distance_org)) * 12
+        trans = coord_diff * F.tanh(self.coordinate_update(h[row], h[col], distances, distance_org)) * self.coord_range
         agg = unsorted_segment_sum(trans, row, x.size(0))
 
         x = x + agg
