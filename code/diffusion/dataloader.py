@@ -123,8 +123,8 @@ class MoleculeDataModule(pl.LightningDataModule):
 
         # If overfitting on single sample, set sample paths to single sample
         if self.single_sample:
-            self.train_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 200
-            self.val_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 50
+            self.train_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 10 * self.batch_size
+            self.val_sample_paths = [path.join(self.dataset_path, single_sample_name)] * self.batch_size
 
     def setup(self, stage=None):
         self.pre_setup()
