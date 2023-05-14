@@ -95,7 +95,9 @@ class EquivariantNetwork(nn.Module):
 
         layers = []
         for _ in range(self.n_layers):
-            layers.append(EQLayer(self.hidden_dim, n_layers=self.n_gcl))
+            layers.append(EQLayer(self.hidden_dim,
+                                  n_total_layers=self.n_layers,
+                                  n_layers=self.n_gcl))
         self.layers = nn.Sequential(*layers)
 
     def pos_encoding(self, t):
