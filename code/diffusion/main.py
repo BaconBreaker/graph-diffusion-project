@@ -101,6 +101,7 @@ def parse_args():
     parser.add_argument("--equiv_pdf_hidden_dim", type=int, default=100,
                         help="Hidden dimension of the equivariant diffusion model pdf \
                             intermediate layer")
+    parser.add_argument("--equiv_n_gcl", type=int, default=1)
 
     # ## Conditional diffusion parameters ##
     parser.add_argument("--conditional", action="store_true",
