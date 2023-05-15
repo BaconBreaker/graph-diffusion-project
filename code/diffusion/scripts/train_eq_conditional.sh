@@ -25,9 +25,10 @@ echo "CUDA version:"
 # 
 # --tensors_to_diffuse edge_sequence
 #  --strategy "ddp"
-python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name ED_cond_pdf_1024 \
-	--model equivariant --max_epochs 2500 --check_val_every_n_epoch 1 --batch_size 8 \
+python main.py --dataset_path ../../graphs_fixed_num_135/ --run_name ED_cond_tanh_pdf_1024 \
+	--model equivariant --max_epochs 1000 --check_val_every_n_epoch 1 --batch_size 8 \
 	--tensors_to_diffuse xyz --pad_length 135 --diffusion_timesteps 1000 --num_workers 4 \
 	--log_every_n_steps 1 --device cuda --accelerator gpu --devices -1 --strategy ddp \
 	--disable_carbon_tracker --sample_interval 0 --enable_progress_bar False \
-	--equiv_hidden_dim 256 --equiv_n_layers 9 --equiv_pdf_hidden_dim 1024 --conditional
+	--equiv_hidden_dim 256 --equiv_n_layers 9 --equiv_pdf_hidden_dim 1024 \
+	--every_n_epoch 100 --conditional
