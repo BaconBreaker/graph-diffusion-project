@@ -88,6 +88,8 @@ def parse_args():
     parser.add_argument("--checkpoint", action="store_true",
                         help="Whether to enable the checkpoint callback",
                         default=True)
+    parser.add_argument("--every_n_epoch", type=int, default=None,
+                        help="Whether to store checkpoint every n epochs")
 
     # ## Metrics ##
     parser.add_argument('--metrics', type=str, nargs='+', default=[],

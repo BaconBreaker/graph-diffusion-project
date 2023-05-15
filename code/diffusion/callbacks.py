@@ -14,6 +14,8 @@ def get_callbacks(args):
     if not args.disable_carbon_tracker:
         callbacks.append(CarbonTrackerCallback(args))
 
+    if args.checkpoint and args.every_n_epoch is not None:
+        callbacks.append(get_epoch_checkpoint_callback(args))
     if args.checkpoint:
         callbacks.append(get_checkpoint_callback(args))
     return callbacks
@@ -66,6 +68,20 @@ def get_checkpoint_callback(args):
         dirpath=f"checkpoints/{args.run_name}",
         filename="{epoch}-{val_loss:.3f}",
         save_top_k=3,
+        save_last=True,
+        monitor="val_loss",
+        mode="min",
+        save_weights_only=True
+    )
+    return checkpoint_callback
+
+
+def get_epoch_checkpoint_callback(args):
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=f"checkpoints/{args.run_name}",
+        filename="{epoch}-{val_loss:.3f}",
+        # save_top_k=3,
+        every_n_epochs=args.every_n_epoch,
         save_last=True,
         monitor="val_loss",
         mode="min",
