@@ -46,6 +46,7 @@ def train(args):
 
     logging.info("Loading callbacks.")
     callbacks = get_callbacks(args)
+    logging.info("callbacks:\n{}".format(callbacks))
 
     logging.info("Creating trainer.")
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks)
