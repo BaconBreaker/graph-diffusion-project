@@ -204,7 +204,7 @@ def make_histogram_single(positions, save_path, plot_positions=True):
     # Same data but on linear color scale
     pcm = axes[2].pcolormesh(xedges, yedges, h.T, cmap=cmap,
                              vmax=1.5e2, rasterized=True)
-    fig.colorbar(pcm, ax=axes[2], label="# points", pad=0)
+    # fig.colorbar(pcm, ax=axes[2], label="# points", pad=0)
     axes[2].set_title("2d histogram and linear color scale")
     axes[2].set_xlabel("frames")
 
