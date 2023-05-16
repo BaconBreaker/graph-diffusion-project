@@ -197,6 +197,8 @@ def make_histogram_single(positions, save_path, plot_positions=True):
     h, xedges, yedges = np.histogram2d(x_fine, y_fine, bins=[400, 100])
     pcm = axes[1].pcolormesh(xedges, yedges, h.T, cmap=cmap,
                              norm=LogNorm(vmax=1.5e2), rasterized=True)
+    print("pcm:")
+    print(pcm)
     fig.colorbar(pcm, ax=axes[1], label="# points", pad=0)
     axes[1].set_title("2d histogram and log color scale")
     axes[1].set_xlabel("frames")

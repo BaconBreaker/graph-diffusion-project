@@ -1,6 +1,6 @@
 #!/bin/bash
 #The partition is the queue you want to run on. standard is gpu and can be omitted.
-#SBATCH -p gpu --gres=gpu:titanrtx:2
+#SBATCH -p gpu --gres=gpu:titanrtx:1
 #SBATCH --job-name=gen_process
 #number of independent tasks we are going to start in this script
 #number of cpus we want to allocate for each program
@@ -24,9 +24,10 @@ echo "CUDA version:"
 nvcc --version
 
 # --tensors_to_diffuse edge_sequence
-python ovito_complete_gif.py --dataset_path ../../graphs_h5/ --run_name eq_sample \
+python ovito_complete_gif.py --dataset_path ../../graphs_h5/ --run_name eq_cond_tanh_pdf_1024 \
 	--model equivariant --batch_size 1 \
-	--tensors_to_diffuse xyz_atom_species --pad_length 23 --diffusion_timesteps 1000 \
-    --device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
-	--t_skips 5 --checkpoint_path "checkpoints/ED_single_sample_v2/epoch=661-val_loss=0.034.ckpt" \
-    --fix_noise --single_sample
+	--tensors_to_diffuse xyz --pad_length 135 --diffusion_timesteps 1000 \
+	--device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
+	--t_skips 5 --checkpoint_path "checkpoints/ED_cond_tanh_pdf_1024_best_model/epoch=918-val_loss=0.419.ckpt" \
+	--equiv_hidden_dim 256 --equiv_n_layers 9 --equiv_pdf_hidden_dim 1024 \
+	--fix_noise --single_sample
