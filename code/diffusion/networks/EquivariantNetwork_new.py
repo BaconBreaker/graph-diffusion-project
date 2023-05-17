@@ -47,7 +47,7 @@ class EquivariantNetwork(nn.Module):
         self.hidden_dim = args.equiv_hidden_dim
         self.pdf_hidden_dim = args.equiv_pdf_hidden_dim
         self.n_layers = args.equiv_n_layers
-        self.n_gcl = args.n_gcl
+        self.n_gcl = args.equiv_n_gcl
         self.conditional = args.conditional
         self._edges_dict = {}
 
