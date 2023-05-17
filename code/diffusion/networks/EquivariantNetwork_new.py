@@ -47,6 +47,7 @@ class EquivariantNetwork(nn.Module):
         self.hidden_dim = args.equiv_hidden_dim
         self.pdf_hidden_dim = args.equiv_pdf_hidden_dim
         self.n_layers = args.equiv_n_layers
+        self.n_gcl = args.n_gcl
         self.conditional = args.conditional
         self._edges_dict = {}
 
@@ -94,7 +95,9 @@ class EquivariantNetwork(nn.Module):
 
         layers = []
         for _ in range(self.n_layers):
-            layers.append(EQLayer(self.hidden_dim, self.n_layers))
+            layers.append(EQLayer(self.hidden_dim,
+                                  n_total_layers=self.n_layers,
+                                  n_layers=self.n_gcl))
         self.layers = nn.Sequential(*layers)
 
     def pos_encoding(self, t):
@@ -268,16 +271,19 @@ class GCL(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def edge_operation(self, h1, h2, r):
+        # \phi_e
         inp = torch.cat([h1, h2, r], dim=1)
         inp = self.silu(self.edg1(inp))
         inp = self.silu(self.edg2(inp))
         return inp
 
     def edge_inference(self, m):
+        # \phi_{inf}
         inp = self.sigmoid(self.edgi(m))
         return inp
 
     def node_update(self, h, m):
+        # \phi_h
         inp = torch.cat([h, m], dim=-1)
         inp = self.silu(self.node1(inp))
         inp = self.node2(inp)
@@ -286,11 +292,11 @@ class GCL(nn.Module):
 
     def forward(self, h, edges, distances):
         row, col = edges
-        edge_feat = self.edge_operation(h[row], h[col], distances)
-        edge_feat = self.edge_inference(edge_feat) * edge_feat
-        agg = unsorted_segment_sum(distances, row, h.shape[0])
+        # Computes m_ij, h_i from equations 12 of the paper
+        m_ij = self.edge_operation(h[row], h[col], distances)
+        edge_soft_est = self.edge_inference(m_ij)
+        agg = unsorted_segment_sum(distances, edge_soft_est * m_ij, h.shape[0])
         h = self.node_update(h, agg)
-
         return h
 
 
@@ -308,6 +314,7 @@ class EQUpdate(nn.Module):
         self.silu = nn.SiLU()
 
     def coordinate_update(self, h1, h2, r, r0):
+        # \phi_x
         inp = torch.cat([h1, h2, r, r0], dim=1)
         inp = self.silu(self.cor1(inp))
         inp = self.silu(self.cor2(inp))
@@ -411,6 +418,12 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
     """Custom PyTorch op to replicate TensorFlow's `unsorted_segment_sum`.
         Normalization: 'sum' or 'mean'.
     """
+    # Performs a sum over all indices where j != i. Does this by creating a
+    # "scatter_add" wherein we for each view in data indexed at position 0
+    # add to this all other views with different ids if they appear in segment_ids.
+    #
+    # This will sum examples from the data batch with all their neighbors.
+    # Since we use fully connected graphs this adds all other examples to one.
     segment_ids = segment_ids.to(data.device)
     result_shape = (num_segments, data.size(1))
     result = data.new_full(result_shape, 0, device=data.device)  # Init empty result tensor.

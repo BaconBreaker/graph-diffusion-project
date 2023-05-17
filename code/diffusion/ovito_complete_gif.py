@@ -83,19 +83,19 @@ def generate_samples(args):
     for i in range(len(log_strs)):
         os.makedirs(f"{args.run_name}_sample_{i}", exist_ok=True)
 
-    logging.info("Making histograms")
-    for i in range(len(log_strs)):
-        log = log_strs[i]
-        size = int(log[0].strip()) + 2  # +2 for the header lines
-        n_samples = len(log) // size
-        # Make position tensor
-        mols = []
-        for i in range(n_samples):
-            atoms = log[i * size:(i + 1) * size]  # Fetch the lines corresponding to the atoms
-            atoms = atoms[2:]  # Remove header
-            mol = torch.tensor([atom.split()[1:] for atom in atoms], dtype=torch.float32)  # Convert positions to tensor
-            mols.append(mol)
-        mols = torch.stack(mols)
+    # logging.info("Making histograms")
+    # for i in range(len(log_strs)):
+    #     log = log_strs[i]
+    #     size = int(log[0].strip()) + 2  # +2 for the header lines
+    #     n_samples = len(log) // size
+    #     # Make position tensor
+    #     mols = []
+    #     for i in range(n_samples):
+    #         atoms = log[i * size:(i + 1) * size]  # Fetch the lines corresponding to the atoms
+    #         atoms = atoms[2:]  # Remove header
+    #         mol = torch.tensor([atom.split()[1:] for atom in atoms], dtype=torch.float32)  # Convert positions to tensor
+    #         mols.append(mol)
+    #     mols = torch.stack(mols)
 
         # Make histogram
         # make_histograms(mols, f"{args.run_name}_sample_{i}/")

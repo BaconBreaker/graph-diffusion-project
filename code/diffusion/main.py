@@ -88,6 +88,8 @@ def parse_args():
     parser.add_argument("--checkpoint", action="store_true",
                         help="Whether to enable the checkpoint callback",
                         default=True)
+    parser.add_argument("--every_n_epoch", type=int, default=None,
+                        help="Whether to store checkpoint every n epochs")
 
     # ## Metrics ##
     parser.add_argument('--metrics', type=str, nargs='+', default=[],
@@ -101,6 +103,7 @@ def parse_args():
     parser.add_argument("--equiv_pdf_hidden_dim", type=int, default=100,
                         help="Hidden dimension of the equivariant diffusion model pdf \
                             intermediate layer")
+    parser.add_argument("--equiv_n_gcl", type=int, default=1)
 
     # ## Conditional diffusion parameters ##
     parser.add_argument("--conditional", action="store_true",
