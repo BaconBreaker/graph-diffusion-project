@@ -98,7 +98,7 @@ def generate_samples(args):
         mols = torch.stack(mols)
 
         # Make histogram
-        make_histograms(mols, f"{args.run_name}_sample_{i}/")
+        # make_histograms(mols, f"{args.run_name}_sample_{i}/")
 
     logging.info("Saving log file")
     for i, log in enumerate(log_strs):
