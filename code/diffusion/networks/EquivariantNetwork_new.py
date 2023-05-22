@@ -125,11 +125,6 @@ class EquivariantNetwork(nn.Module):
         pad_mask = pad_mask.to(x.device)
         pdf = pdf.to(x.device)
 
-        print("x.shape", x.shape)
-        print("pdf.shape", pdf.shape)
-        print("pad_mask.shape", pad_mask.shape)
-        print("t.shape", t.shape)
-
         # Flip padding values so 1 means no padding and 0 means padding
         # Also unsqueeze to (batch_size, pad_length, 1) and convert to float
         pad_mask = (~pad_mask).unsqueeze(-1).float()
@@ -269,7 +264,7 @@ class GCL(nn.Module):
 
         self.edgi = nn.Linear(hidden_dim, 1)
 
-        self.node1 = nn.Linear(hidden_dim + 1, hidden_dim)
+        self.node1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.node2 = nn.Linear(hidden_dim, hidden_dim)
 
         self.silu = nn.SiLU()
@@ -277,7 +272,6 @@ class GCL(nn.Module):
 
     def edge_operation(self, h1, h2, r):
         # \phi_e
-        print(h1.shape, h2.shape, r.shape)
         inp = torch.cat([h1, h2, r], dim=1)
         inp = self.silu(self.edg1(inp))
         inp = self.silu(self.edg2(inp))
@@ -290,7 +284,9 @@ class GCL(nn.Module):
 
     def node_update(self, h, m):
         # \phi_h
+        print(h.shape, m.shape)
         inp = torch.cat([h, m], dim=-1)
+        print(inp.shape)
         inp = self.silu(self.node1(inp))
         inp = self.node2(inp)
         inp = h + inp
@@ -301,7 +297,10 @@ class GCL(nn.Module):
         # Computes m_ij, h_i from equations 12 of the paper
         m_ij = self.edge_operation(h[row], h[col], distances)
         edge_soft_est = self.edge_inference(m_ij)
+        print(edge_soft_est.shape, "edge_soft_est")
+        print(m_ij.shape, "m_ij")
         agg = unsorted_segment_sum(edge_soft_est * m_ij, row, h.shape[0])
+        print(agg.shape, "agg")
         h = self.node_update(h, agg)
         return h
 
