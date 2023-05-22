@@ -277,6 +277,7 @@ class GCL(nn.Module):
 
     def edge_operation(self, h1, h2, r):
         # \phi_e
+        print(h1.shape, h2.shape, r.shape)
         inp = torch.cat([h1, h2, r], dim=1)
         inp = self.silu(self.edg1(inp))
         inp = self.silu(self.edg2(inp))
