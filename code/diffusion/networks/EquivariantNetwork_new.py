@@ -124,7 +124,7 @@ class EquivariantNetwork(nn.Module):
         pad_mask = batch['pad_mask']
         pad_mask = pad_mask.to(x.device)
         pdf = pdf.to(x.device)
-        
+
         print("x.shape", x.shape)
         print("pdf.shape", pdf.shape)
         print("pad_mask.shape", pad_mask.shape)
@@ -300,7 +300,7 @@ class GCL(nn.Module):
         # Computes m_ij, h_i from equations 12 of the paper
         m_ij = self.edge_operation(h[row], h[col], distances)
         edge_soft_est = self.edge_inference(m_ij)
-        agg = unsorted_segment_sum(distances, edge_soft_est * m_ij, h.shape[0])
+        agg = unsorted_segment_sum(edge_soft_est * m_ij, row, h.shape[0])
         h = self.node_update(h, agg)
         return h
 
