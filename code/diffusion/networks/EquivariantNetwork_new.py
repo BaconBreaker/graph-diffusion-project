@@ -284,9 +284,7 @@ class GCL(nn.Module):
 
     def node_update(self, h, m):
         # \phi_h
-        print(h.shape, m.shape)
         inp = torch.cat([h, m], dim=-1)
-        print(inp.shape)
         inp = self.silu(self.node1(inp))
         inp = self.node2(inp)
         inp = h + inp
@@ -297,10 +295,7 @@ class GCL(nn.Module):
         # Computes m_ij, h_i from equations 12 of the paper
         m_ij = self.edge_operation(h[row], h[col], distances)
         edge_soft_est = self.edge_inference(m_ij)
-        print(edge_soft_est.shape, "edge_soft_est")
-        print(m_ij.shape, "m_ij")
         agg = unsorted_segment_sum(edge_soft_est * m_ij, row, h.shape[0])
-        print(agg.shape, "agg")
         h = self.node_update(h, agg)
         return h
 
