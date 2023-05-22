@@ -124,6 +124,11 @@ class EquivariantNetwork(nn.Module):
         pad_mask = batch['pad_mask']
         pad_mask = pad_mask.to(x.device)
         pdf = pdf.to(x.device)
+        
+        print("x.shape", x.shape)
+        print("pdf.shape", pdf.shape)
+        print("pad_mask.shape", pad_mask.shape)
+        print("t.shape", t.shape)
 
         # Flip padding values so 1 means no padding and 0 means padding
         # Also unsqueeze to (batch_size, pad_length, 1) and convert to float
