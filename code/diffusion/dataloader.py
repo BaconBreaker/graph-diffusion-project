@@ -141,18 +141,20 @@ class MoleculeDataModule(pl.LightningDataModule):
         if stage == "fit" or stage is None:
             self.train_dataset = MoleculeDataset(self.train_sample_paths,
                                                  self.pad_length,
-                                                 self.transform)
+                                                 self.transform,
+                                                 cubic=self.cubic)
             self.val_dataset = MoleculeDataset(self.val_sample_paths,
                                                self.pad_length,
-                                               self.transform)
+                                               self.transform,
+                                               cubic=self.cubic)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size,
-                          shuffle=True, num_workers=self.num_workers, cubic=self.cubic)
+                          shuffle=True, num_workers=self.num_workers)
 
     def val_dataloader(self):
         return DataLoader(self.val_dataset, batch_size=self.batch_size,
-                          shuffle=False, num_workers=self.num_workers, cubic=self.cubic)
+                          shuffle=False, num_workers=self.num_workers)
 
     def transfer_batch_to_device(self, batch, device, dataloader_idx):
         if isinstance(batch, dict):
