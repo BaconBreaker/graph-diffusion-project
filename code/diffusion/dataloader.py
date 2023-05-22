@@ -61,6 +61,8 @@ class MoleculeDataset(Dataset):
                                 [0, 1, 1], [1, 0, 0], [1, 0, 1],
                                 [1, 1, 0], [1, 1, 1]], dtype=torch.float32)
             node_features = torch.zeros((8, 6))
+            r = torch.zeros(3000)
+            pdf = torch.zeros(3000)
 
         pad_mask = torch.zeros(self.pad_length, dtype=torch.bool)
         pad_mask[n_atoms:] = True
