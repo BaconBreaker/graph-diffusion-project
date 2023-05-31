@@ -54,7 +54,7 @@ class DiffusionWrapper(pl.LightningModule):
         if self.count_dict is None:
             self.count_dict = {}
             for name, param in self.denoising_fn.named_parameters():
-                if 'weight' in name:
+                if 'weight' in name and param.grad is not None:
                     self.count_dict[name] = torch.zeros(param.grad.shape)
 
         # For quick debuggung
