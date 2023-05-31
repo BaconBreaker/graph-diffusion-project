@@ -22,6 +22,12 @@ class DiffusionWrapper(pl.LightningModule):
         self.metrics = metrics
         self.sample_interval = sample_interval
 
+        # For quick debugging
+        self.count_dict = {}
+        for name, param in self.denoising_fn.named_parameters():
+            if 'weight' in name:
+                self.count_dict[name] = torch.zeros(param.grad.shape)
+
     def forward(self, x):
         return self.denoising_fn(x)
 
@@ -47,6 +53,16 @@ class DiffusionWrapper(pl.LightningModule):
                          prog_bar=True, sync_dist=True)
 
         self.log("loss", loss, sync_dist=True)
+
+        # For quick debuggung
+        for name, param in self.denoising_fn.named_parameters():
+            if 'weight' in name:
+                temp = torch.zeros(param.grad.shape)
+                temp[param.grad != 0] += 1
+                self.count_dict[name] += temp
+
+        print(sum([1 for name, ten in self.count_dict.items() if torch.sum(ten) == 0]))
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -63,7 +79,6 @@ class DiffusionWrapper(pl.LightningModule):
             # Check if tthe noise should be padded
             if hasattr(self.denoising_fn, "pad_noise"):
                 noise_i = self.denoising_fn.pad_noise(noise_i, batch)
-
 
             loss += self.diffusion_model.loss(pred, noise_i, batch)
             for metric_name, metric_fn in self.metrics:
