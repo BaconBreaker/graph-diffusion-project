@@ -23,10 +23,7 @@ class DiffusionWrapper(pl.LightningModule):
         self.sample_interval = sample_interval
 
         # For quick debugging
-        self.count_dict = {}
-        for name, param in self.denoising_fn.named_parameters():
-            if 'weight' in name:
-                self.count_dict[name] = torch.zeros(param.grad.shape)
+        self.count_dict = None
 
     def forward(self, x):
         return self.denoising_fn(x)
@@ -53,6 +50,12 @@ class DiffusionWrapper(pl.LightningModule):
                          prog_bar=True, sync_dist=True)
 
         self.log("loss", loss, sync_dist=True)
+
+        if self.count_dict is None:
+            self.count_dict = {}
+            for name, param in self.denoising_fn.named_parameters():
+                if 'weight' in name:
+                    self.count_dict[name] = torch.zeros(param.grad.shape)
 
         # For quick debuggung
         for name, param in self.denoising_fn.named_parameters():
