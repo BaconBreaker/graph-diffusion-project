@@ -62,7 +62,10 @@ class DiffusionWrapper(pl.LightningModule):
             if 'weight' in name and param.grad is not None:
                 temp = torch.zeros(param.grad.shape)
                 temp[param.grad != 0] += 1
-                self.count_dict[name] += temp
+                if name in self.count_dict:
+                    self.count_dict[name] += temp
+                else:
+                    self.count_dict[name] = temp
 
         print(sum([1 for name, ten in self.count_dict.items() if torch.sum(ten) == 0]))
 
