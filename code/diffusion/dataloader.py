@@ -60,6 +60,8 @@ class MoleculeDataset(Dataset):
             xyz = torch.tensor([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1],
                                 [-1, 1, 1], [1, -1, -1], [1, -1, 1],
                                 [1, 1, -1], [1, 1, 1]], dtype=torch.float32)
+            init_noise = torch.randn_like(xyz) * 0.01
+            xyz += init_noise
             node_features = torch.zeros((8, 7))
             node_features[:, 4:7] = xyz
             r = torch.zeros(3000)
