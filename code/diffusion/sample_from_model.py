@@ -61,6 +61,8 @@ def generate_samples(args):
     ex_batch = next(iter(val_dl))
     ex_batch = dataloader.transfer_batch_to_device(ex_batch, args.device, 0)
 
+    print("lenght of dataloader: ", len(val_dl))
+
     if args.fix_noise:
         fixed_noises = [diffusion_model.sample_from_noise_fn(
             ex_batch[tensor].shape) for tensor in diffusion_model.tensors_to_diffuse]
@@ -74,10 +76,10 @@ def generate_samples(args):
 
     logging.info("Starting sampling process of 64 samples")
     rwps = []
-    n_samples_per_structure = 5
-    logging.info("Number of samples per structure: {n_samples_per_structure}")
+    n_samples_per_structure = 1
+    logging.info(f"Number of samples per structure: {n_samples_per_structure}")
     for i in range(n_samples_per_structure):
-        logging.info("Starting sample {i}")
+        logging.info(f"Starting sample {i}")
         samples, i = diffusion.sample_graphs(ex_batch,
                                              post_process=posttransform,
                                              save_output=False,
@@ -86,12 +88,13 @@ def generate_samples(args):
 
         # print(samples.keys())
         # print(samples)
-        logging.info("Computed sample {i}")
+        logging.info(f"Computed sample {i}")
         matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
-        logging.info("Performed post transform on sample {i}")
+        logging.info(f"Performed post transform on sample {i}")
         predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
-        logging.info("Calculated pdf on sample {i}")
+        logging.info(f"Calculated pdf on sample {i}")
         rwps.append(rwp_metric(predicted_pdf, pdf))
+        logging.info(f"computed rwp on sample {i}")
 
     print(rwps)
 
