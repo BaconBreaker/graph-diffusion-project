@@ -111,7 +111,7 @@ class DiffusionWrapper(pl.LightningModule):
         self.log("Pearson", pearson_metric(predicted_pdf, pdf), prog_bar=True,
                  sync_dist=True)
 
-        return log_strs
+        return samples, log_strs
 
     def on_fit_start(self):
         self.diffusion_model.set_device(self.device)

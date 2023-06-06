@@ -71,15 +71,15 @@ def generate_samples(args):
     # logging.info(f"Diffusion process finished with {len(log_strs[0])} length logs.")
 
     logging.info("Starting sampling process")
-    sample_dict, _ = diffusion.sample(ex_batch,
-                                      post_process=posttransform,
-                                      save_output=False,
-                                      noise=fixed_noises,
-                                      t_skips=args.t_skips)
+    samples, _ = diffusion.sample_graphs(ex_batch,
+                                         post_process=posttransform,
+                                         save_output=False,
+                                         noise=fixed_noises,
+                                         t_skips=args.t_skips)
     # logging.info(f"Reverse diffusion process finished with {len(log_strs[0])} length logs.")
 
-    print(sample_dict.keys())
-    print(sample_dict)
+    print(samples.keys())
+    print(samples)
 
     # logging.info("Making sample dirs")
     # for i in range(len(log_strs)):
