@@ -264,7 +264,7 @@ class GCL(nn.Module):
 
         self.edgi = nn.Linear(hidden_dim, 1)
 
-        self.node1 = nn.Linear(hidden_dim + 1, hidden_dim)
+        self.node1 = nn.Linear(hidden_dim * 2, hidden_dim)
         self.node2 = nn.Linear(hidden_dim, hidden_dim)
 
         self.silu = nn.SiLU()
@@ -295,7 +295,7 @@ class GCL(nn.Module):
         # Computes m_ij, h_i from equations 12 of the paper
         m_ij = self.edge_operation(h[row], h[col], distances)
         edge_soft_est = self.edge_inference(m_ij)
-        agg = unsorted_segment_sum(distances, edge_soft_est * m_ij, h.shape[0])
+        agg = unsorted_segment_sum(edge_soft_est * m_ij, row, h.shape[0])
         h = self.node_update(h, agg)
         return h
 
@@ -305,7 +305,7 @@ class EQUpdate(nn.Module):
         super(EQUpdate, self).__init__()
         self.hidden_dim = hidden_dim
         # coord range is manually set to 12 here
-        self.coord_range = 12 / n_total_layers
+        self.coord_range = 3.5 / n_total_layers
 
         self.cor1 = nn.Linear(hidden_dim * 2 + 2, hidden_dim)
         self.cor2 = nn.Linear(hidden_dim, hidden_dim)
@@ -429,6 +429,6 @@ def unsorted_segment_sum(data, segment_ids, num_segments):
     result = data.new_full(result_shape, 0, device=data.device)  # Init empty result tensor.
     segment_ids = segment_ids.unsqueeze(-1).expand(-1, data.size(1))
     result.scatter_add_(0, segment_ids, data)
-    result = result / 100  # Normalization factor ???
+    result = result / 1  # Normalization factor ???
 
     return result

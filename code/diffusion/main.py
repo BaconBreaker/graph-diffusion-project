@@ -50,6 +50,8 @@ def parse_args():
                         help="Length to pad the graphs to, None means no the script will pad to the max length")
     parser.add_argument("--single_sample", action="store_true", default=False,
                         help="Whether to use a single (specific) sample for training")
+    parser.add_argument("--cubic", action="store_true", default=False,
+                        help="Whether to use only cube sample")
 
     # ## Model parameters ##
     parser.add_argument("--model", type=str, default="self_attention",

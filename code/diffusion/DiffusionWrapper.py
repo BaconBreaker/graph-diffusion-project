@@ -47,6 +47,7 @@ class DiffusionWrapper(pl.LightningModule):
                          prog_bar=True, sync_dist=True)
 
         self.log("loss", loss, sync_dist=True)
+
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -63,7 +64,6 @@ class DiffusionWrapper(pl.LightningModule):
             # Check if tthe noise should be padded
             if hasattr(self.denoising_fn, "pad_noise"):
                 noise_i = self.denoising_fn.pad_noise(noise_i, batch)
-
 
             loss += self.diffusion_model.loss(pred, noise_i, batch)
             for metric_name, metric_fn in self.metrics:

@@ -20,7 +20,7 @@ single_sample_name = "graph_AntiFlourite_Ra2O_r5.h5"
 
 
 class MoleculeDataset(Dataset):
-    def __init__(self, sample_list, pad_length, transform=None):
+    def __init__(self, sample_list, pad_length, transform=None, cubic=False):
         """
         Dataset class for molecules
         args:
@@ -30,6 +30,7 @@ class MoleculeDataset(Dataset):
         self.sample_list = sample_list
         self.pad_length = pad_length
         self.transform = transform
+        self.cubic = cubic
 
     def __len__(self):
         return len(self.sample_list)
@@ -48,14 +49,27 @@ class MoleculeDataset(Dataset):
                 pad_mask: (pad_length) tensor containing a mask for the padding
         """
         sample_path = self.sample_list[idx]
-        edge_features, edge_indices, node_features, r, pdf = load_structure(sample_path)
+        if not self.cubic:
+            edge_features, edge_indices, node_features, r, pdf = load_structure(sample_path)
+            n_atoms = node_features.shape[0]
+            node_features = pad_array(node_features, self.pad_length, 0)
+
+            xyz = node_features[:, 4:7]
+        else:
+            n_atoms = 8
+            xyz = torch.tensor([[-1, -1, -1], [-1, -1, 1], [-1, 1, -1],
+                                [-1, 1, 1], [1, -1, -1], [1, -1, 1],
+                                [1, 1, -1], [1, 1, 1]], dtype=torch.float32)
+            init_noise = torch.randn_like(xyz) * 0.01
+            xyz += init_noise
+            node_features = torch.zeros((8, 7))
+            node_features[:, 4:7] = xyz
+            r = torch.zeros(3000)
+            pdf = torch.zeros(3000)
 
         pad_mask = torch.zeros(self.pad_length, dtype=torch.bool)
-        pad_mask[node_features.shape[0]:] = True
+        pad_mask[n_atoms:] = True
 
-        node_features = pad_array(node_features, self.pad_length, 0)
-
-        xyz = node_features[:, 4:7]
         adj_matrix = torch.zeros((self.pad_length, self.pad_length), dtype=torch.float32)
         tri_cor = torch.triu_indices(node_features.shape[0], node_features.shape[0], offset=1)
         distances = torch.tensor(pdist(xyz, metric='euclidean'), dtype=torch.float32)
@@ -93,6 +107,7 @@ class MoleculeDataModule(pl.LightningDataModule):
         self.num_workers = args.num_workers
         self.tensors_to_diffuse = args.tensors_to_diffuse
         self.single_sample = args.single_sample
+        self.cubic = args.cubic
 
         self.pad_length = args.pad_length
         self.transform = transform
@@ -123,7 +138,7 @@ class MoleculeDataModule(pl.LightningDataModule):
 
         # If overfitting on single sample, set sample paths to single sample
         if self.single_sample:
-            self.train_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 10 * self.batch_size
+            self.train_sample_paths = [path.join(self.dataset_path, single_sample_name)] * 128 * self.batch_size
             self.val_sample_paths = [path.join(self.dataset_path, single_sample_name)] * self.batch_size
 
     def setup(self, stage=None):
@@ -132,10 +147,12 @@ class MoleculeDataModule(pl.LightningDataModule):
         if stage == "fit" or stage is None:
             self.train_dataset = MoleculeDataset(self.train_sample_paths,
                                                  self.pad_length,
-                                                 self.transform)
+                                                 self.transform,
+                                                 cubic=self.cubic)
             self.val_dataset = MoleculeDataset(self.val_sample_paths,
                                                self.pad_length,
-                                               self.transform)
+                                               self.transform,
+                                               cubic=self.cubic)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size,
