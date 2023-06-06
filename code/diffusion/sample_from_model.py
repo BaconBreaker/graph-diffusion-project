@@ -80,7 +80,8 @@ def generate_samples(args):
     logging.info(f"Number of samples per structure {n_samples_per_structure}")
     n_samples_pbar = tqdm(range(n_samples_per_structure),
                           total=n_samples_per_structure,
-                          position=0)
+                          position=0,
+                          leave=True)
     for i in n_samples_pbar:
         # logging.info("Starting sample")
         samples, _ = diffusion.sample_graphs(ex_batch,
