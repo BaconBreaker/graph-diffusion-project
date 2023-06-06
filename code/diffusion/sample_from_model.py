@@ -106,7 +106,7 @@ def generate_samples(args):
         # logging.info("computed rwp on sample")
         post_transform = posttransform(samples)
         pt_names = ["matrix_in", "atom_species", "r", "pdf", "pad_mask"]
-        post_samples = {pt: ptn.clone().detach().cpu()
+        post_samples = {ptn: pt.clone().detach().cpu()
                         for ptn, pt in zip(pt_names, post_transform)}
         rwps.append(post_samples)
 
