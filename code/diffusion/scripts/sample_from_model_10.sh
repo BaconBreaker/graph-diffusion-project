@@ -1,7 +1,7 @@
 #!/bin/bash
 #The partition is the queue you want to run on. standard is gpu and can be omitted.
 #SBATCH -p gpu --gres=gpu:titanrtx:1
-#SBATCH --job-name=gen_process
+#SBATCH --job-name=sample_10
 #number of independent tasks we are going to start in this script
 #number of cpus we want to allocate for each program
 #SBATCH --cpus-per-task=4
@@ -24,7 +24,7 @@ echo "CUDA version:"
 nvcc --version
 
 # --tensors_to_diffuse edge_sequence
-python sample_from_model.py --dataset_path ../../graphs_fixed_num_135/ --run_name many_samples \
+python sample_from_model.py --dataset_path ../../graphs_fixed_num_135/ --run_name many_samples_10 \
 	--model equivariant --batch_size 1 \
 	--tensors_to_diffuse xyz --pad_length 135 --diffusion_timesteps 1000 \
 	--device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
