@@ -102,14 +102,14 @@ class DiffusionWrapper(pl.LightningModule):
                                                         t_skips=t_skips,
                                                         log_strs=log_strs)
 
-        matrix_in, atom_species, r, pdf, pad_mask = self.posttransform(samples)
-        predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
+        # matrix_in, atom_species, r, pdf, pad_mask = self.posttransform(samples)
+        # predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
 
-        self.log("RWP", rwp_metric(predicted_pdf, pdf), prog_bar=True, sync_dist=True)
-        self.log("MSE of pdf", mse_metric(predicted_pdf, pdf), prog_bar=True,
-                 sync_dist=True)
-        self.log("Pearson", pearson_metric(predicted_pdf, pdf), prog_bar=True,
-                 sync_dist=True)
+        # self.log("RWP", rwp_metric(predicted_pdf, pdf), prog_bar=True, sync_dist=True)
+        # self.log("MSE of pdf", mse_metric(predicted_pdf, pdf), prog_bar=True,
+        #          sync_dist=True)
+        # self.log("Pearson", pearson_metric(predicted_pdf, pdf), prog_bar=True,
+        #          sync_dist=True)
 
         return samples, log_strs
 

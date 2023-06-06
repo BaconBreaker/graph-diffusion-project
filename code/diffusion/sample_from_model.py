@@ -75,11 +75,11 @@ def generate_samples(args):
     logging.info("Starting sampling process of 64 samples")
     rwps = []
     for _ in range(64):
-        samples, _ = diffusion.diffusion_model.sample(ex_batch,
-                                                      post_process=posttransform,
-                                                      save_output=False,
-                                                      noise=fixed_noises,
-                                                      t_skips=args.t_skips)
+        samples, _ = diffusion.sample_graphs(ex_batch,
+                                             post_process=posttransform,
+                                             save_output=False,
+                                             noise=fixed_noises,
+                                             t_skips=args.t_skips)
 
         # print(samples.keys())
         # print(samples)
