@@ -24,7 +24,7 @@ echo "CUDA version:"
 nvcc --version
 
 # --tensors_to_diffuse edge_sequence
-python sample_from_model.py --dataset_path ../../graphs_fixed_num_135/ --run_name eq_cond_tanh_pdf_1024 \
+python sample_from_model.py --dataset_path ../../graphs_fixed_num_135/ --run_name many_samples \
 	--model equivariant --batch_size 2 \
 	--tensors_to_diffuse xyz --pad_length 135 --diffusion_timesteps 1000 \
 	--device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
