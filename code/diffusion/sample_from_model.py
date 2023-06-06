@@ -65,7 +65,7 @@ def generate_samples(args):
 
     logging.info(f"lenght of dataloader: {len(val_dl)}")
     logging.info(f"batch size: {args.batch_size}")
-    n_samples_per_structure = 16
+    n_samples_per_structure = int(args.run_name[-2:])
     logging.info(f"Number of samples per structure {n_samples_per_structure}")
     n_total_samples = n_samples_per_structure * len(val_dl) * args.batch_size
     logging.info(f"total number of samples {n_total_samples}")
