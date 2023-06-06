@@ -62,7 +62,7 @@ def generate_samples(args):
     ex_batch = next(iter(val_dl))
     ex_batch = dataloader.transfer_batch_to_device(ex_batch, args.device, 0)
 
-    print("lenght of dataloader: ", len(val_dl))
+    logging.info(f"lenght of dataloader: {len(val_dl)}")
 
     if args.fix_noise:
         fixed_noises = [diffusion_model.sample_from_noise_fn(
@@ -79,6 +79,11 @@ def generate_samples(args):
     rwps = []
     n_samples_per_structure = 3
     logging.info(f"Number of samples per structure {n_samples_per_structure}")
+    n_total_samples = n_samples_per_structure * len(val_dl) * args.batch_size
+    logging.info(f"total number of samples {n_total_samples}")
+    estimated_time_to_compute = n_total_samples * 30 / 60 / 60
+    logging.info(f"Estimated time to compute {estimated_time_to_compute} hours")
+
     n_samples_pbar = tqdm(range(n_samples_per_structure),
                           total=n_samples_per_structure)
     for i in n_samples_pbar:
@@ -99,7 +104,11 @@ def generate_samples(args):
         # logging.info("Calculated pdf on sample")
         # rwps.append(rwp_metric(predicted_pdf, pdf))
         # logging.info("computed rwp on sample")
-        rwps.append(posttransform(samples))
+        post_transform = posttransform(samples)
+        pt_names = ["matrix_in", "atom_species", "r", "pdf", "pad_mask"]
+        post_samples = {pt: ptn.clone().detach().cpu()
+                        for ptn, pt in zip(pt_names, post_transform)}
+        rwps.append(post_samples)
 
     print(rwps)
     with open("rwps.pkl", "wb") as f:
