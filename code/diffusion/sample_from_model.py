@@ -77,13 +77,13 @@ def generate_samples(args):
     logging.info("Starting sampling process of 64 samples")
     rwps = []
     n_samples_per_structure = 5
-    logging.info("Number of samples per structure: %i", {n_samples_per_structure})
+    logging.info(f"Number of samples per structure {n_samples_per_structure}")
     n_samples_pbar = tqdm(range(n_samples_per_structure),
                           total=n_samples_per_structure,
                           position=0)
     for i in n_samples_pbar:
-        logging.info("Starting sample %i", i)
-        samples, i = diffusion.sample_graphs(ex_batch,
+        logging.info("Starting sample")
+        samples, _ = diffusion.sample_graphs(ex_batch,
                                              post_process=posttransform,
                                              save_output=False,
                                              noise=fixed_noises,
@@ -92,13 +92,13 @@ def generate_samples(args):
 
         # print(samples.keys())
         # print(samples)
-        logging.info("Computed sample %i", i)
+        logging.info("Computed sample")
         matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
-        logging.info("Performed post transform on sample %i", i)
+        logging.info("Performed post transform on sample")
         predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
-        logging.info("Calculated pdf on sample %i", i)
+        logging.info("Calculated pdf on sample")
         rwps.append(rwp_metric(predicted_pdf, pdf))
-        logging.info("computed rwp on sample %i", i)
+        logging.info("computed rwp on sample")
 
     print(rwps)
 
