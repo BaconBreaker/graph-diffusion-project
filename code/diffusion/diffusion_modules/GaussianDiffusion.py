@@ -124,7 +124,7 @@ class GaussianDiffusion(Diffusion):
                 if save_output and post_process is not None and i % t_skips == 0:
                     log_strs = save_graph_str_batch(sample_dict, post_process, log_strs)
 
-        model.train()
+        # model.train()
 
         return sample_dict, log_strs
 
