@@ -94,7 +94,8 @@ def calculate_pdf(point_cloud, atom_species):
     pdf = torch.tensor(pdf, dtype=torch.float32)
     pdf /= (torch.max(pdf) + 1e-12)
 
-    return torch.tensor(pdf, dtype=torch.float32)
+    return pdf.clone().detach()
+    # return torch.tensor(pdf, dtype=torch.float32)
 
 
 def calculate_pdf_from_adjecency_matrix(adj_matrix, atom_species):
