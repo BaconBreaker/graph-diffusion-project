@@ -114,7 +114,7 @@ def generate_samples(args):
             # logging.info("computed rwp on sample")
             rwps[batch_i, i] = rwp
 
-    torch.save(rwps, f"{args.run_name}_rwps.pt")
+            torch.save(rwps, f"{args.run_name}_rwps.pt")
 
     # logging.info(f"Reverse diffusion process finished with {len(log_strs[0])} length logs.")
 
