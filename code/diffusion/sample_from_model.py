@@ -61,9 +61,21 @@ def generate_samples(args):
     val_dl = dataloader.val_dataloader()
     ex_batch = next(iter(val_dl))
     ex_batch = dataloader.transfer_batch_to_device(ex_batch, args.device, 0)
+    batch_i = 1
 
     logging.info(f"lenght of dataloader: {len(val_dl)}")
+    logging.info(f"batch size: {args.batch_size}")
+    n_samples_per_structure = 2
+    logging.info(f"Number of samples per structure {n_samples_per_structure}")
+    n_total_samples = n_samples_per_structure * len(val_dl) * args.batch_size
+    logging.info(f"total number of samples {n_total_samples}")
+    estimated_time_to_compute = n_total_samples * 60 / 60 / 60
+    logging.info(f"Estimated time to compute {estimated_time_to_compute} hours")
 
+    # rwps = torch.zeros(len(val_dl), args.batch_size, n_samples_per_structure)
+    rwps = torch.zeros(1, args.batch_size, n_samples_per_structure)
+
+    # for batch_i, ex_batch in enumerate(val_dl):
     if args.fix_noise:
         fixed_noises = [diffusion_model.sample_from_noise_fn(
             ex_batch[tensor].shape) for tensor in diffusion_model.tensors_to_diffuse]
@@ -75,42 +87,37 @@ def generate_samples(args):
     #                                  args.t_skips, diffusion_model, fixed_noises)
     # logging.info(f"Diffusion process finished with {len(log_strs[0])} length logs.")
 
-    rwps = []
-    n_samples_per_structure = 10
-    logging.info(f"Number of samples per structure {n_samples_per_structure}")
-    n_total_samples = n_samples_per_structure * len(val_dl) * args.batch_size
-    logging.info(f"total number of samples {n_total_samples}")
-    estimated_time_to_compute = n_total_samples * 60 / 60 / 60
-    logging.info(f"Estimated time to compute {estimated_time_to_compute} hours")
-
     n_samples_pbar = tqdm(range(n_samples_per_structure),
-                          total=n_samples_per_structure)
+                        total=n_samples_per_structure)
+
     for i in n_samples_pbar:
         # logging.info("Starting sample")
         samples, _ = diffusion.sample_graphs(ex_batch,
-                                             post_process=posttransform,
-                                             save_output=False,
-                                             noise=fixed_noises,
-                                             t_skips=args.t_skips,
-                                             pbar=False)
+                                            post_process=posttransform,
+                                            save_output=False,
+                                            noise=fixed_noises,
+                                            t_skips=args.t_skips,
+                                            pbar=False)
 
         # print(samples.keys())
         # print(samples)
-        logging.info("Computed sample")
+        # logging.info("Computed sample")
         matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
-        logging.info("Performed post transform on sample")
+        # logging.info("Performed post transform on sample")
         predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
-        logging.info("Calculated pdf on sample")
-        rwps.append(rwp_metric(predicted_pdf, pdf))
-        logging.info("computed rwp on sample")
+        # logging.info("Calculated pdf on sample")
+        rwp = rwp_metric(predicted_pdf, pdf)
+        # logging.info("computed rwp on sample")
+        rwps[batch_i, :, i] = rwp
+
+        # logging.info("computed rwp on sample")
         # post_transform = posttransform(samples)
         # pt_names = ["matrix_in", "atom_species", "r", "pdf", "pad_mask"]
         # post_samples = {ptn: pt.clone().detach().cpu()
         #                 for ptn, pt in zip(pt_names, post_transform)}
         # rwps.append(post_samples)
 
-    print(rwps)
-    print(rwps[0].shape)
+    torch.save(rwps, f"{args.run_name}_rwps.pt")
 
     # logging.info(f"Reverse diffusion process finished with {len(log_strs[0])} length logs.")
 
