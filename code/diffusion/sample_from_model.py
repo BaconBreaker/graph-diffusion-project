@@ -78,6 +78,8 @@ def generate_samples(args):
     dl_pbar = tqdm(val_dl, total=len(val_dl), position=0)
 
     for batch_i, ex_batch in enumerate(dl_pbar):
+        ex_batch = dataloader.transfer_batch_to_device(ex_batch, args.device, 0)
+
         if args.fix_noise:
             fixed_noises = [diffusion_model.sample_from_noise_fn(
                 ex_batch[tensor].shape) for tensor in diffusion_model.tensors_to_diffuse]
