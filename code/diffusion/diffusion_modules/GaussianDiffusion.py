@@ -84,7 +84,7 @@ class GaussianDiffusion(Diffusion):
 
     def sample(self, model, batch_dict, save_output=False,
                post_process=None, noise=None, t_skips=1, log_strs=None,
-               pbar_position=0):
+               pbar=True):
         """Sample n examples from the model, with optional labels for conditional sampling.
         The `labels` argument is ignored if the model is not conditional.
         """
@@ -115,10 +115,11 @@ class GaussianDiffusion(Diffusion):
             if save_output and post_process is not None:
                 log_strs = save_graph_str_batch(sample_dict, post_process, log_strs)
 
-            pbar = tqdm(reversed(range(1, self.noise_steps)),
-                        total=self.noise_steps - 1,
-                        position=pbar_position,
-                        leave = pbar_position == 0)
+            if pbar:
+                pbar = tqdm(reversed(range(1, self.noise_steps)),
+                        total=self.noise_steps - 1)
+            else:
+                pbar = reversed(range(1, self.noise_steps))
 
             for i in pbar:
                 sample_dict = self.sample_previous_x(sample_dict, i, model)

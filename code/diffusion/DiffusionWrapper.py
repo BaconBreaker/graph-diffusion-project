@@ -84,7 +84,7 @@ class DiffusionWrapper(pl.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.lr)
 
     def sample_graphs(self, batch, post_process=None, save_output=False,
-                      noise=None, t_skips=1, log_strs=None, pbar_position=0):
+                      noise=None, t_skips=1, log_strs=None, pbar=True):
         """
         Function to sample graphs from the diffusion model and evaluate them
         args:
@@ -102,7 +102,7 @@ class DiffusionWrapper(pl.LightningModule):
                                                         noise=noise,
                                                         t_skips=t_skips,
                                                         log_strs=log_strs,
-                                                        pbar_position=pbar_position)
+                                                        pbar=pbar)
 
         # matrix_in, atom_species, r, pdf, pad_mask = self.posttransform(samples)
         # predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)

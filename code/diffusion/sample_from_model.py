@@ -11,6 +11,7 @@ from utils.plots import save_graph_str_batch, make_histograms
 import os
 import torch
 
+import pickle
 
 def diffusion_process_log(batch_dict, posttransform, T, t_skips, diffusion_model, fixed_noises):
     pbar = tqdm(range(0, T, t_skips))
@@ -76,12 +77,10 @@ def generate_samples(args):
 
     logging.info("Starting sampling process of 64 samples")
     rwps = []
-    n_samples_per_structure = 5
+    n_samples_per_structure = 3
     logging.info(f"Number of samples per structure {n_samples_per_structure}")
     n_samples_pbar = tqdm(range(n_samples_per_structure),
-                          total=n_samples_per_structure,
-                          position=0,
-                          leave=True)
+                          total=n_samples_per_structure)
     for i in n_samples_pbar:
         # logging.info("Starting sample")
         samples, _ = diffusion.sample_graphs(ex_batch,
@@ -89,19 +88,22 @@ def generate_samples(args):
                                              save_output=False,
                                              noise=fixed_noises,
                                              t_skips=args.t_skips,
-                                             pbar_position=1)
+                                             pbar=False)
 
         # print(samples.keys())
         # print(samples)
         # logging.info("Computed sample")
-        matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
+        # matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
         # logging.info("Performed post transform on sample")
-        predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
+        # predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
         # logging.info("Calculated pdf on sample")
-        rwps.append(rwp_metric(predicted_pdf, pdf))
+        # rwps.append(rwp_metric(predicted_pdf, pdf))
         # logging.info("computed rwp on sample")
+        rwps.append(posttransform(samples))
 
     print(rwps)
+    with open("rwps.pkl", "wb") as f:
+        pickle.dump(rwps, f)
 
     # logging.info(f"Reverse diffusion process finished with {len(log_strs[0])} length logs.")
 
