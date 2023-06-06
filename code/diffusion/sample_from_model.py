@@ -61,7 +61,7 @@ def generate_samples(args):
     val_dl = dataloader.val_dataloader()
     ex_batch = next(iter(val_dl))
     ex_batch = dataloader.transfer_batch_to_device(ex_batch, args.device, 0)
-    batch_i = 1
+    batch_i = 0
 
     logging.info(f"lenght of dataloader: {len(val_dl)}")
     logging.info(f"batch size: {args.batch_size}")
