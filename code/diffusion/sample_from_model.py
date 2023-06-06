@@ -59,9 +59,9 @@ def generate_samples(args):
 
     logging.info("preparing batch.")
     val_dl = dataloader.val_dataloader()
-    ex_batch = next(iter(val_dl))
-    ex_batch = dataloader.transfer_batch_to_device(ex_batch, args.device, 0)
-    batch_i = 0
+    # ex_batch = next(iter(val_dl))
+    # ex_batch = dataloader.transfer_batch_to_device(ex_batch, args.device, 0)
+    # batch_i = 0
 
     logging.info(f"lenght of dataloader: {len(val_dl)}")
     logging.info(f"batch size: {args.batch_size}")
@@ -72,44 +72,45 @@ def generate_samples(args):
     estimated_time_to_compute = n_total_samples * 60 / 60 / 60
     logging.info(f"Estimated time to compute {estimated_time_to_compute} hours")
 
-    # rwps = torch.zeros(len(val_dl), n_samples_per_structure)
-    rwps = torch.zeros(1, n_samples_per_structure)
+    rwps = torch.zeros(len(val_dl), n_samples_per_structure)
+    # rwps = torch.zeros(1, n_samples_per_structure)
 
-    # for batch_i, ex_batch in enumerate(val_dl):
-    if args.fix_noise:
-        fixed_noises = [diffusion_model.sample_from_noise_fn(
-            ex_batch[tensor].shape) for tensor in diffusion_model.tensors_to_diffuse]
-    else:
-        fixed_noises = None
+    dl_pbar = tqdm(val_dl, total=len(val_dl), position=0)
 
-    # logging.info("Starting diffusion process")
-    # log_strs = diffusion_process_log(ex_batch, posttransform, args.diffusion_timesteps,
-    #                                  args.t_skips, diffusion_model, fixed_noises)
-    # logging.info(f"Diffusion process finished with {len(log_strs[0])} length logs.")
+    for batch_i, ex_batch in enumerate(dl_pbar):
+        if args.fix_noise:
+            fixed_noises = [diffusion_model.sample_from_noise_fn(
+                ex_batch[tensor].shape) for tensor in diffusion_model.tensors_to_diffuse]
+        else:
+            fixed_noises = None
 
-    n_samples_pbar = tqdm(range(n_samples_per_structure),
-                          total=n_samples_per_structure, position=1, leave=False)
+        # logging.info("Starting diffusion process")
+        # log_strs = diffusion_process_log(ex_batch, posttransform, args.diffusion_timesteps,
+        #                                  args.t_skips, diffusion_model, fixed_noises)
+        # logging.info(f"Diffusion process finished with {len(log_strs[0])} length logs.")
 
-    for i in n_samples_pbar:
-    # logging.info("Starting sample")
-        samples, _ = diffusion.sample_graphs(ex_batch,
-                                            post_process=posttransform,
-                                            save_output=False,
-                                            noise=fixed_noises,
-                                            t_skips=args.t_skips,
-                                            pbar=False)
+        n_samples_pbar = tqdm(range(n_samples_per_structure),
+                            total=n_samples_per_structure, position=1)
 
-        # print(samples.keys())
-        # print(samples)
-        # logging.info("Computed sample")
-        matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
-        # logging.info("Performed post transform on sample")
-        predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
-        # logging.info("Calculated pdf on sample")
-        rwp = rwp_metric(predicted_pdf, pdf)
-        print(rwp.shape)
-        # logging.info("computed rwp on sample")
-        rwps[batch_i, i] = rwp
+        for i in n_samples_pbar:
+        # logging.info("Starting sample")
+            samples, _ = diffusion.sample_graphs(ex_batch,
+                                                post_process=posttransform,
+                                                save_output=False,
+                                                noise=fixed_noises,
+                                                t_skips=args.t_skips,
+                                                pbar=False)
+
+            # print(samples.keys())
+            # print(samples)
+            # logging.info("Computed sample")
+            matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
+            # logging.info("Performed post transform on sample")
+            predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
+            # logging.info("Calculated pdf on sample")
+            rwp = rwp_metric(predicted_pdf, pdf)
+            # logging.info("computed rwp on sample")
+            rwps[batch_i, i] = rwp
 
     torch.save(rwps, f"{args.run_name}_rwps.pt")
 
