@@ -117,7 +117,8 @@ class GaussianDiffusion(Diffusion):
 
             pbar = tqdm(reversed(range(1, self.noise_steps)),
                         total=self.noise_steps - 1,
-                        position=pbar_position)
+                        position=pbar_position,
+                        leave = pbar_position == 0)
 
             for i in pbar:
                 sample_dict = self.sample_previous_x(sample_dict, i, model)
