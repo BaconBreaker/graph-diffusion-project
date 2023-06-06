@@ -25,7 +25,7 @@ nvcc --version
 
 # --tensors_to_diffuse edge_sequence
 python sample_from_model.py --dataset_path ../../graphs_fixed_num_135/ --run_name many_samples \
-	--model equivariant --batch_size 2 \
+	--model equivariant --batch_size 1 \
 	--tensors_to_diffuse xyz --pad_length 135 --diffusion_timesteps 1000 \
 	--device "cuda" --accelerator "gpu" --devices -1 --disable_carbon_tracker \
 	--t_skips 5 --checkpoint_path "checkpoints/ED_cond_tanh_pdf_1024_best_model/epoch=918-val_loss=0.419.ckpt" \
