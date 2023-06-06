@@ -75,13 +75,12 @@ def generate_samples(args):
     #                                  args.t_skips, diffusion_model, fixed_noises)
     # logging.info(f"Diffusion process finished with {len(log_strs[0])} length logs.")
 
-    logging.info("Starting sampling process of 64 samples")
     rwps = []
-    n_samples_per_structure = 3
+    n_samples_per_structure = 10
     logging.info(f"Number of samples per structure {n_samples_per_structure}")
     n_total_samples = n_samples_per_structure * len(val_dl) * args.batch_size
     logging.info(f"total number of samples {n_total_samples}")
-    estimated_time_to_compute = n_total_samples * 30 / 60 / 60
+    estimated_time_to_compute = n_total_samples * 60 / 60 / 60
     logging.info(f"Estimated time to compute {estimated_time_to_compute} hours")
 
     n_samples_pbar = tqdm(range(n_samples_per_structure),
@@ -97,22 +96,21 @@ def generate_samples(args):
 
         # print(samples.keys())
         # print(samples)
-        # logging.info("Computed sample")
-        # matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
-        # logging.info("Performed post transform on sample")
-        # predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
-        # logging.info("Calculated pdf on sample")
-        # rwps.append(rwp_metric(predicted_pdf, pdf))
-        # logging.info("computed rwp on sample")
-        post_transform = posttransform(samples)
-        pt_names = ["matrix_in", "atom_species", "r", "pdf", "pad_mask"]
-        post_samples = {ptn: pt.clone().detach().cpu()
-                        for ptn, pt in zip(pt_names, post_transform)}
-        rwps.append(post_samples)
+        logging.info("Computed sample")
+        matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
+        logging.info("Performed post transform on sample")
+        predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
+        logging.info("Calculated pdf on sample")
+        rwps.append(rwp_metric(predicted_pdf, pdf))
+        logging.info("computed rwp on sample")
+        # post_transform = posttransform(samples)
+        # pt_names = ["matrix_in", "atom_species", "r", "pdf", "pad_mask"]
+        # post_samples = {ptn: pt.clone().detach().cpu()
+        #                 for ptn, pt in zip(pt_names, post_transform)}
+        # rwps.append(post_samples)
 
     print(rwps)
-    with open("rwps.pkl", "wb") as f:
-        pickle.dump(rwps, f)
+    print(rwps[0].shape)
 
     # logging.info(f"Reverse diffusion process finished with {len(log_strs[0])} length logs.")
 
