@@ -5,6 +5,8 @@ from dataloader import MoleculeDataModule
 from utils.metrics import get_metrics
 from DiffusionWrapper import DiffusionWrapper
 from tqdm.auto import tqdm
+from utils.pdf import calculate_pdf_batch
+from utils.metrics import rwp_metric, mse_metric, pearson_metric
 from utils.plots import save_graph_str_batch, make_histograms
 import os
 import torch
@@ -70,16 +72,26 @@ def generate_samples(args):
     #                                  args.t_skips, diffusion_model, fixed_noises)
     # logging.info(f"Diffusion process finished with {len(log_strs[0])} length logs.")
 
-    logging.info("Starting sampling process")
-    samples, _ = diffusion.sample_graphs(ex_batch,
-                                         post_process=posttransform,
-                                         save_output=False,
-                                         noise=fixed_noises,
-                                         t_skips=args.t_skips)
+    logging.info("Starting sampling process of 64 samples")
+    rwps = []
+    for _ in range(64):
+        samples, _ = diffusion.diffusion_model.sample(ex_batch,
+                                                      post_process=posttransform,
+                                                      save_output=False,
+                                                      noise=fixed_noises,
+                                                      t_skips=args.t_skips)
+
+        # print(samples.keys())
+        # print(samples)
+
+        matrix_in, atom_species, r, pdf, pad_mask = posttransform(samples)
+        predicted_pdf = calculate_pdf_batch(matrix_in, atom_species, pad_mask)
+        rwps.append(rwp_metric(predicted_pdf, pdf))
+
+    print(rwps)
+
     # logging.info(f"Reverse diffusion process finished with {len(log_strs[0])} length logs.")
 
-    print(samples.keys())
-    print(samples)
 
     # logging.info("Making sample dirs")
     # for i in range(len(log_strs)):
