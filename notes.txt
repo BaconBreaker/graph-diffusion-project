@@ -1,7 +1,0 @@
-TODO:
-    - Make xyz-file
-    - Visualize using ovito
-    - Overfit on 1 sample
-    - Visualize overfitting
-    - Overfit on small dataset (10-20 samples)
-    - Visualize results
